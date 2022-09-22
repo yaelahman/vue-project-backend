@@ -6,6 +6,8 @@ use App\Invoice;
 use Illuminate\Contracts\View\View;
 use Maatwebsite\Excel\Concerns\FromView;
 
+header("Content-Type: application/json");
+
 class AbsensiExport implements FromView
 
 {

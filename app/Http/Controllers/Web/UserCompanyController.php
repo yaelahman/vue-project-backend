@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Fungsi;
 use App\Http\Controllers\Controller;
+use App\Mail\ChangeMail;
 use App\Models\Personel;
 use App\Models\UserCompany;
 use App\Models\CompanyIndustri;
@@ -15,6 +16,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use App\Mail\MailUser;
+use App\Models\ChangeEmail;
 use Illuminate\Support\Facades\Mail;
 
 class UserCompanyController extends Controller
@@ -32,6 +34,8 @@ class UserCompanyController extends Controller
 
     public function create(Request $request)
     {
+
+
 
         DB::beginTransaction();
         try {
@@ -69,6 +73,52 @@ class UserCompanyController extends Controller
                     Fungsi::STATUS_ERROR,
                     "Gagal. Email telah digunakan"
                 );
+            }
+
+            if ($user_company->m_user_company_email != $request['user_company']['m_user_company_email']) {
+
+                $change = ChangeEmail::where('email', $user_company->m_user_company_email)->first();
+                if (!isset($request['user_company']['token'])) {
+                    if (!$change) {
+                        $change = new ChangeEmail();
+                    }
+                    $change->email = $user_company->m_user_company_email;
+                    $change->email_change = $request['user_company']['m_user_company_email'];
+                    $change->token = rand(100000, 999999);
+                    $change->created_at = Carbon::now();
+                    $change->save();
+
+
+                    $order = [
+                        'token' => $change->token,
+                        'subject' => 'Verify Update Email Address',
+                    ];
+                    $user = User::where('email', $change->email)->first();
+                    $user->email = $change->email_change;
+                    $user->save();
+                    $user->notify(new ChangeMail($order));
+
+                    $user->email = $change->email;
+                    $user->save();
+                    DB::commit();
+
+                    return $this->sendResponse(
+                        Fungsi::STATUS_ERROR,
+                        "",
+                        [
+                            'modal' => true,
+                        ]
+                    );
+                }
+
+                if ($change->token != $request['user_company']['token']) {
+                    return $this->sendResponse(
+                        Fungsi::STATUS_ERROR,
+                        "Token salah."
+                    );
+                }
+                $change = ChangeEmail::where('email', $user_company->m_user_company_email)->firstOrFail();
+                $change->delete();
             }
 
             $user_company->m_user_company_name = $request['user_company']['m_user_company_name'];
@@ -116,6 +166,7 @@ class UserCompanyController extends Controller
             );
         } catch (\Exception $e) {
             DB::rollback();
+            throw $e;
             return $this->sendResponse(
                 Fungsi::STATUS_ERROR,
                 Fungsi::MES_CREATE_EDIT

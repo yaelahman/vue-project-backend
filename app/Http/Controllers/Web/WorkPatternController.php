@@ -130,16 +130,23 @@ class WorkPatternController extends Controller
     {
         $message = 'Berhasil menghapus Jadwal Kerja';
 
-        $work_pattern = WorkPatern::findOrFail($id);
-        $word_schedules = WorkSchedule::where('id_m_work_patern', $work_pattern->id_m_work_patern)->get();
-        foreach ($word_schedules as $word_schedule) {
-            $word_schedule->delete();
-        }
-        $work_pattern->delete();
+        try {
+            $work_pattern = WorkPatern::findOrFail($id);
+            $word_schedules = WorkSchedule::where('id_m_work_patern', $work_pattern->id_m_work_patern)->get();
+            foreach ($word_schedules as $word_schedule) {
+                $word_schedule->delete();
+            }
+            $work_pattern->delete();
 
-        return $this->sendResponse(
-            Fungsi::STATUS_SUCCESS,
-            $message
-        );
+            return $this->sendResponse(
+                Fungsi::STATUS_SUCCESS,
+                $message
+            );
+        } catch (\Exception $e) {
+            return $this->sendResponse(
+                Fungsi::STATUS_ERROR,
+                "Gagal Menghapus Jadwal Kerja"
+            );
+        }
     }
 }

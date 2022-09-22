@@ -176,45 +176,50 @@ class DailyAttendanceController extends Controller
 
     public function ExportExcel(Request $request)
     {
-        $name = Auth::user()->name;
-        // dd($auth);
-        $absensi = Absensi::with([
-            'Personel' => function ($query) {
-                $query->with('Departemen');
-            },
-            'WorkPersonel' => function ($query) {
-                $query->with(['getWorkPattern']);
+        try {
+
+            $name = Auth::user()->name;
+            // dd($auth);
+            $absensi = Absensi::with([
+                'Personel' => function ($query) {
+                    $query->with('Departemen');
+                },
+                'WorkPersonel' => function ($query) {
+                    $query->with(['getWorkPattern']);
+                }
+            ])->whereIn('t_absensi_status', [1, 2])->orderBy('t_absensi_startClock');
+
+            if (isset($request->start_date) && isset($request->end_date)) {
+                $absensi->where('t_absensi_Dates', '>=', $request->start_date);
+                $absensi->where('t_absensi_Dates', '<=', $request->end_date);
             }
-        ])->whereIn('t_absensi_status', [1, 2])->orderBy('t_absensi_startClock');
 
-        if (isset($request->start_date) && isset($request->end_date)) {
-            $absensi->where('t_absensi_Dates', '>=', $request->start_date);
-            $absensi->where('t_absensi_Dates', '<=', $request->end_date);
-        }
+            $start = date('d-m-Y', strtotime($request->start_date));
+            $end = date('d-m-Y', strtotime($request->end_date));
 
-        $start = date('d-m-Y', strtotime($request->start_date));
-        $end = date('d-m-Y', strtotime($request->end_date));
+            if ($absensi->count() < 1) {
+                return response()->json([
+                    'status' => 404,
+                    'message' => 'Data tidak ditemukan'
+                ]);
+            }
 
-        if ($absensi->count() < 1) {
-            return response()->json([
-                'status' => 404,
-                'message' => 'Data tidak ditemukan'
+            $data = [
+                'absensi' => $absensi->get()
+            ];
+
+            $url = "Laporan Absensi $name ($start ~ $end).xlsx";
+            $excel = Excel::store(new AbsensiExport($data), $url, 'excel', null, [
+                'visibility' => 'public',
             ]);
+
+            return response()->json([
+                'url' => url('excel/' . $url),
+                'message' => 'Data Ditemukan',
+                'status' => 200
+            ]);
+        } catch (\Exception $e) {
+            throw $e;
         }
-
-        $data = [
-            'absensi' => $absensi->get()
-        ];
-
-        $url = "Laporan Absensi $name ($start ~ $end).xlsx";
-        $excel = Excel::store(new AbsensiExport($data), $url, 'excel', null, [
-            'visibility' => 'public',
-        ]);
-
-        return response()->json([
-            'url' => url('excel/' . $url),
-            'message' => 'Data Ditemukan',
-            'status' => 200
-        ]);
     }
 }
