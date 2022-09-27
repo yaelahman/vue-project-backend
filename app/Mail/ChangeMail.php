@@ -39,7 +39,7 @@ class ChangeMail extends Notification implements ShouldQueue
             ->subject($this->subject)
             ->view('mails.change', $this->details);
         // ->introLines("OKE")
-        // ->line(Lang::get('The introduction to the notification.'))
+        // ->line(Lang::get(' '))
         // ->action(
         //     Lang::get('Verify Email Address'),
         //     $this->link
