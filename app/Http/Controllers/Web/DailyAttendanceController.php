@@ -29,6 +29,7 @@ class DailyAttendanceController extends Controller
         $auth = Auth::user();
         $absensi = Absensi::where('id_m_user_company', $auth->id_m_user_company)
             ->whereIn('t_absensi_status', [1, 2])
+            ->has('WorkPersonel')
             ->with('PhotoAbsensi')
             ->with('Personel')
             ->with(['WorkPersonel' => function ($query) {
@@ -187,7 +188,7 @@ class DailyAttendanceController extends Controller
                 'WorkPersonel' => function ($query) {
                     $query->with(['getWorkPattern']);
                 }
-            ])->whereIn('t_absensi_status', [1, 2])->orderBy('t_absensi_startClock');
+            ])->has('WorkPersonel')->whereIn('t_absensi_status', [1, 2])->orderBy('t_absensi_startClock');
 
             if (isset($request->start_date) && isset($request->end_date)) {
                 $absensi->where('t_absensi_Dates', '>=', $request->start_date);

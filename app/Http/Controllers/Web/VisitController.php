@@ -28,6 +28,7 @@ class VisitController extends Controller
         }
         $absensi = Absensi::where('t_absensi_status', 4)
             ->orderBy('t_absensi_startClock')
+            ->has('WorkPersonel')
             ->where('id_m_user_company', $this->auth()->id_m_user_company)
             ->with('PhotoAbsensi')
             ->with('Personel');
@@ -173,7 +174,8 @@ class VisitController extends Controller
             'WorkPersonel' => function ($query) {
                 $query->with(['getWorkPattern']);
             }
-        ])->where('t_absensi_status', 4)->orderBy('t_absensi_startClock');
+        ])
+            ->has('WorkPersonel')->where('t_absensi_status', 4)->orderBy('t_absensi_startClock');
 
         if ($request->start_date != null && $request->end_date != null) {
             $absensi->where('t_absensi_Dates', '>=', $request->start_date);

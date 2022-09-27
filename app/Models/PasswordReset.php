@@ -9,7 +9,7 @@ class PasswordReset extends Model
 
     protected $connection = 'pgsql';
     protected $table = 'password_resets';
-    protected $primaryKey = null;
+    protected $primaryKey = 'email';
     public $incrementing = false;
     public $timestamps = false;
 }
