@@ -53,7 +53,7 @@ class PersonelTimeWorkController extends Controller
     public function getDataEditPersonel()
     {
         $auth = Auth::user();
-        $get_personel = Personel::where('id_m_user_company', $auth->id_m_user_company)->get();
+        $get_personel = Personel::where('id_m_user_company', $auth->id_m_user_company)->whereNotIn('id_m_personel', WorkPersonel::select('id_m_personel')->get())->get();
 
         return $this->sendResponse(
             Fungsi::STATUS_SUCCESS,

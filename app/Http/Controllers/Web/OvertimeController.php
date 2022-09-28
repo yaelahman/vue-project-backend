@@ -28,7 +28,7 @@ class OvertimeController extends Controller
         }
         $absensi = Absensi::where('t_absensi_status', 3)
             // ->orderBy('id_t_absensi', 'desc')
-            ->has('WorkPersonel')
+            // ->has('WorkPersonel')
             ->where('id_m_user_company', $this->auth()->id_m_user_company)
             ->with('PhotoAbsensi')
             ->with('Personel')
@@ -176,7 +176,8 @@ class OvertimeController extends Controller
                 $query->with(['getWorkPattern']);
             }
         ])
-            ->has('WorkPersonel')->where('t_absensi_status', 3)->orderBy('t_absensi_startClock');
+            // ->has('WorkPersonel')
+            ->where('t_absensi_status', 3)->orderBy('t_absensi_startClock');
 
         if (isset($request->start_date) && isset($request->end_date)) {
             $absensi->where('t_absensi_Dates', '>=', $request->start_date);
