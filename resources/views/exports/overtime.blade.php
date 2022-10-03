@@ -37,7 +37,7 @@
                     $menit = $result / 60;
                 @endphp
                 <td>
-                    {{ $menit < 0 ? 0 : explode('.', $menit)[0] }} Menit</td>
+                    {{ $menit < 0 ? 0 : explode('.', $menit)[0] }}</td>
                 <td>{{ $row->t_absensi_catatan }}</td>
             </tr>
         @endforeach

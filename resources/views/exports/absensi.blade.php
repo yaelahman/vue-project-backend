@@ -41,7 +41,7 @@
                         $menit = $result / 60 - $tolerance;
                     @endphp
                     <td>
-                        {{ $menit < 0 ? 0 : explode('.', $menit)[0] }} Menit</td>
+                        {{ $menit < 0 ? 0 : explode('.', $menit)[0] }}</td>
                 </tr>
             @endif
         @endforeach

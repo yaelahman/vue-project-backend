@@ -292,9 +292,9 @@ class UserCompanyController extends Controller
             $user->email_verified_at = Carbon::now();
             $user->save();
 
-            return redirect()->to('http://localhost:5173/login?verified_mail=true');
+            return redirect()->to(env('APP_URL_FRONTEND') . '/login?verified_mail=true');
         }
 
-        return redirect()->to('http://localhost:5173/login?verified_mail=false');
+        return redirect()->to(env('APP_URL_FRONTEND') . '/login?verified_mail=false');
     }
 }
