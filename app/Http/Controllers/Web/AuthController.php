@@ -106,6 +106,10 @@ class AuthController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollback();
+            return response()->json([
+                'status' => 401,
+                'message' => 'Registrasi Gagal, Silahkan Hubungi Admin'
+            ], 401);
             throw $e;
         }
     }
