@@ -82,8 +82,9 @@ class VisitController extends Controller
             }
             $absensi->id_m_personel = $request['absensi']['personel'];
             $absensi->t_absensi_Dates = $date;
-            $absensi->t_absensi_startClock = $request['absensi']['startClock'] != null ? "$date " . ' ' . $request['absensi']['startClock'] : null;
-            $absensi->t_absensi_endClock = $request['absensi']['endClock'] != null ? "$date " . ' ' . $request['absensi']['endClock'] : null;
+            $absensi->t_absensi_startClock = $request['absensi']['startClock'] != null ? $request['absensi']['startDate'] . " " . $request['absensi']['startClock'] : null;
+            $absensi->t_absensi_endClock = $request['absensi']['endClock'] != null ? $request['absensi']['endDate'] . " " . $request['absensi']['endClock'] : null;
+            $absensi->t_absensi_catatan = $request['absensi']['catatan'];
             $absensi->t_absensi_status = 4;
             $absensi->updated_at = Carbon::now();
             $absensi->save();

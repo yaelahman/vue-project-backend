@@ -12,6 +12,7 @@
             <th width="130px">Jam Pulang</th>
             <th width="130px">Menit Toleransi</th>
             <th width="130px">Menit Terlambat</th>
+            <th width="130px">Denda</th>
         </tr>
     </thead>
     <tbody>
@@ -41,7 +42,11 @@
                         $menit = $result / 60 - $tolerance;
                     @endphp
                     <td>
-                        {{ $menit < 0 ? 0 : explode('.', $menit)[0] }}</td>
+                        {{ $menit < 0 ? 0 : explode('.', $menit)[0] }}
+                    </td>
+                    <td>
+                        {{ number_format(($denda->m_device_settings_denda * ($menit < 0 ? 0 : explode('.', $menit)[0])), 0) }}
+                    </td>
                 </tr>
             @endif
         @endforeach

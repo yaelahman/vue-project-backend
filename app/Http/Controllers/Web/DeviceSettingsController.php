@@ -26,7 +26,8 @@ class DeviceSettingsController extends Controller
             $auth = Auth::user();
 
             if ($auth->id_m_user_company != null) {
-                if (DeviceSettings::where('id_m_user_company', $auth->id_m_user_company)->count() < 1) {
+                $setting = DeviceSettings::where('id_m_user_company', $auth->id_m_user_company);
+                if ($setting->count() < 1) {
                     $setting = new DeviceSettings();
                     $setting->id_m_user_company = $auth->id_m_user_company;
                     $setting->m_device_settings_absensiCamera = false;
@@ -35,14 +36,21 @@ class DeviceSettingsController extends Controller
                     $setting->m_device_settings_visitFaceRecognition = false;
                     $setting->m_device_settings_overtimeCamera = false;
                     $setting->m_device_settings_overtimeFaceRecognition = false;
+                    $setting->m_device_settings_denda = 0;
                     $setting->save();
                 }
+            } else {
+                return $this->sendResponse(
+                    Fungsi::STATUS_SUCCESS,
+                    "Sukses"
+                );
             }
             DB::commit();
 
             return $this->sendResponse(
                 Fungsi::STATUS_SUCCESS,
-                "Sukses"
+                "Sukses",
+                $setting->get()
             );
         } catch (\Exception $e) {
             throw $e;
@@ -68,6 +76,7 @@ class DeviceSettingsController extends Controller
             $setting->m_device_settings_visitFaceRecognition = $request['device_settings']['m_device_settings_visitFaceRecognition'];
             $setting->m_device_settings_overtimeCamera = $request['device_settings']['m_device_settings_overtimeCamera'];
             $setting->m_device_settings_overtimeFaceRecognition = $request['device_settings']['m_device_settings_overtimeFaceRecognition'];
+            $setting->m_device_settings_denda = $request['device_settings']['m_device_settings_denda'];
             $setting->save();
 
             DB::commit();

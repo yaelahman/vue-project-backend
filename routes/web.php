@@ -59,6 +59,8 @@ $router->get('mail/verify/{id}', [
     'as' => 'verify.email.user',
     'uses' => 'Web\UserCompanyController@mail'
 ]);
+$router->get('faq/get', 'Web\FaqController@index');
+$router->get('faq/website', 'Web\FaqController@website');
 
 $router->group([
     'middleware' => 'auth:api'
@@ -74,6 +76,12 @@ $router->group([
     $router->post('/update-password', 'Web\UserController@updatePassword');
 
     $router->get('/home', 'HomeController@index');
+
+    $router->group(['prefix' => 'faq'], function () use ($router) {
+        $router->get('show/{id}', 'Web\FaqController@show');
+        $router->post('store', 'Web\FaqController@store');
+        $router->delete('{id}', 'Web\FaqController@destroy');
+    });
 
     // Company Industri
     $router->post('/ceate-edit-company-industri', 'Web\CompanyIndustriController@create');
@@ -118,6 +126,7 @@ $router->group([
     $router->post('/daily-attendance', 'Web\DailyAttendanceController@create');
     $router->delete('/daily-attendance/{id}', 'Web\DailyAttendanceController@delete');
     $router->get('/attendance-summary', 'Web\DailyAttendanceController@attendanceSummary');
+    $router->get('/detail-attendance-summary', 'Web\DailyAttendanceController@attendanceSummaryDetail');
 
     // Personel Time Work
     $router->get('/index-personel-time-work', 'Web\PersonelTimeWorkController@index');
@@ -161,6 +170,7 @@ $router->group([
 
     $router->group(['prefix' => 'exports'], function () use ($router) {
         $router->get('absensi', 'Web\DailyAttendanceController@ExportExcel');
+        $router->get('ringkasan_kehadiran', 'Web\DailyAttendanceController@ExportExcelAttendanceSummary');
         $router->get('lembur', 'Web\OvertimeController@ExportExcel');
         $router->get('kunjungan', 'Web\VisitController@ExportExcel');
         $router->get('izin/{type}', 'Web\PermitController@ExportExcel');

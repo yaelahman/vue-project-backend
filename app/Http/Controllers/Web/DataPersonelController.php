@@ -16,16 +16,20 @@ use Illuminate\Support\Facades\Log;
 
 class DataPersonelController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $auth = Auth::user();
 
-        $personels = Personel::orderBy('id_m_personel', 'desc')->where('id_m_user_company', $auth->id_m_user_company)->get();
+        $personels = Personel::orderBy('id_m_personel', 'desc')->where('id_m_user_company', $auth->id_m_user_company);
+
+        if (isset($request->work_personel) && $request->work_personel) {
+            $personels->has('WorkPersonel');
+        }
 
         return $this->sendResponse(
             Fungsi::STATUS_SUCCESS,
             Fungsi::MES_SUCCESS,
-            $personels->load('Departemen')
+            $personels->get()->load('Departemen')
         );
     }
 

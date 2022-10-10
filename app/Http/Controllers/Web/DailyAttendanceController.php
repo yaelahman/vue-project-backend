@@ -3,13 +3,18 @@
 namespace App\Http\Controllers\Web;
 
 use App\Exports\AbsensiExport;
+use App\Exports\AttendanceSummary;
 use App\Fungsi;
 use App\Http\Controllers\Controller;
 use App\Models\Absensi;
 use App\Models\AbsensiPhoto;
+use App\Models\DeviceSettings;
 use App\Models\Personel;
+use App\Models\WorkPersonel;
 use Carbon\Carbon;
+use Carbon\CarbonPeriod;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
@@ -82,10 +87,14 @@ class DailyAttendanceController extends Controller
                 $absensi->id_m_user_company = $auth->id_m_user_company;
             }
 
+            $absensi->id_m_personel = $request['absensi']['personel'];
             $absensi->t_absensi_isLate = $request['absensi']['isLate'];
+            $absensi->t_absensi_Dates = $request['absensi']['startDate'];
             $absensi->t_absensi_startClock = $request['absensi']['startClock'] != null ? $request['absensi']['startDate'] . ' ' . $request['absensi']['startClock'] : null;
             $absensi->t_absensi_endClock = $request['absensi']['endClock'] != null ? $request['absensi']['endDate'] . ' ' . $request['absensi']['endClock'] : null;
             $absensi->t_absensi_status = isset($request['absensi']['status']) && $request['absensi']['status'] ? 2 : 1;
+            $absensi->t_absensi_catatan_telat_masuk = $request['absensi']['catatan_masuk'] != null ? $request['absensi']['catatan_masuk'] : null;
+            $absensi->t_absensi_catatan = $request['absensi']['catatan_pulang'] != null ? $request['absensi']['catatan_pulang'] : null;
             $absensi->updated_at = Carbon::now();
             $absensi->save();
 
@@ -150,29 +159,122 @@ class DailyAttendanceController extends Controller
                 }
             }
 
+
             $auth = Auth::user();
-            $personels = Personel::where('id_m_user_company', $auth->id_m_user_company)->get();
+            $personels = Personel::has(
+                'WorkPersonel'
+            )->where('id_m_user_company', $auth->id_m_user_company);
+
+            if (isset($request->departemen) && $request->departemen != null) {
+                $personels->where('id_m_departemen', $request->departemen);
+            }
+            $personels = $personels->get();
             foreach ($personels as $personel) {
-                $absensis = Absensi::whereBetween('t_absensi_Dates', [$request->startDate, $request->endDate])->whereNotNull('t_absensi_endClock')->where('id_m_personel', $personel->id_m_personel)->get();
+                $start = new Carbon($personel->WorkPersonel->m_work_personel_time);
+                if (strtotime($request->startDate) > strtotime($personel->WorkPersonel->m_work_personel_time)) {
+                    $start = new Carbon($request->startDate);
+                }
+                $end = new Carbon($request->endDate);
+                $period = CarbonPeriod::create($start, $end);
+
+                $filter_date = [];
+
+                foreach ($period as $date) {
+                    $filter_date[] = $date->format('Y-m-d');
+                }
+
+                $absensis = Absensi::whereBetween('t_absensi_Dates', [$request->startDate, $request->endDate])
+                    ->whereNotNull('t_absensi_endClock')
+                    ->where('id_m_personel', $personel->id_m_personel)
+                    ->whereIn('t_absensi_status', [1, 2])
+                    ->get();
                 $kehadiran = 0;
+                $terlambat = 0;
+                $tidak_terlambat = 0;
+                $wfh = 0;
                 $total_jam = null;
                 foreach ($absensis as $absensi) {
+                    $filter_date = Arr::where($filter_date, function ($row) use ($absensi) {
+                        return $row != $absensi->t_absensi_Dates;
+                    });
+
                     ++$kehadiran;
                     $datang = strtotime($absensi->t_absensi_startClock);
                     $pulang = strtotime($absensi->t_absensi_endClock);
                     $jam_kerja = floor(($pulang - $datang) / 3600);
                     $total_jam = $total_jam + $jam_kerja;
+                    if ($absensi->t_absensi_isLate == 2) {
+                        $terlambat += 1;
+                    } else {
+                        $tidak_terlambat += 1;
+                    }
+
+                    if ($absensi->t_absensi_status == 2) $wfh += 1;
                 }
                 $personel->kehadiran = $kehadiran;
+                $personel->terlambat = $terlambat;
+                $personel->wfh = $wfh;
+                $personel->tidak_terlambat = $tidak_terlambat;
+                $personel->tidak_hadir = count($filter_date);
                 $personel->total_jam = $total_jam;
             }
 
             return $this->sendResponse(
                 Fungsi::STATUS_SUCCESS,
                 Fungsi::MES_SUCCESS,
-                $personels
+                $personels->load('Departemen')
             );
         }
+    }
+
+    public function attendanceSummaryDetail(Request $request)
+    {
+        $detail = Absensi::select('*')
+            ->whereBetween('t_absensi_Dates', [$request->startDate, $request->endDate])
+            ->whereNotNull('t_absensi_endClock')
+            ->where('id_m_personel', $request->id_m_personel)
+            ->whereIn('t_absensi_status', [1, 2]);
+
+        if (strtolower($request->type) == 'terlambat') {
+            $detail->where('t_absensi_isLate', 2);
+        } else if (strtolower($request->type) == 'tidak terlambat') {
+            $detail->where('t_absensi_isLate', '!=', 2);
+        } else if (strtolower($request->type) == 'wfh') {
+            $detail->where('t_absensi_status', 2);
+        } else if (strtolower($request->type) == 'tidak absen') {
+            $personel = Personel::find($request->id_m_personel);
+            $start = new Carbon($personel->WorkPersonel->m_work_personel_time);
+            if (strtotime($request->startDate) > strtotime($personel->WorkPersonel->m_work_personel_time)) {
+                $start = new Carbon($request->startDate);
+            }
+            $end = new Carbon($request->endDate);
+            $period = CarbonPeriod::create($start, $end);
+
+            $filter_date = [];
+
+            foreach ($period as $date) {
+                $filter_date[] = $date->format('Y-m-d');
+            }
+
+            foreach ($detail->get() as $val) {
+                $filter_date = Arr::where($filter_date, function ($row) use ($val) {
+                    return $row != $val->t_absensi_Dates;
+                });
+            }
+
+            return $this->sendResponse(
+                Fungsi::STATUS_SUCCESS,
+                Fungsi::MES_SUCCESS,
+                $filter_date
+                // count($period->toArray())
+                // $detail->get()->pluck('t_absensi_Dates')
+            );
+        }
+        return $this->sendResponse(
+            Fungsi::STATUS_SUCCESS,
+            Fungsi::MES_SUCCESS,
+            $detail->get()
+        );
     }
 
     public function ExportExcel(Request $request)
@@ -206,7 +308,8 @@ class DailyAttendanceController extends Controller
             }
 
             $data = [
-                'absensi' => $absensi->get()
+                'absensi' => $absensi->get(),
+                'denda' => DeviceSettings::select('m_device_settings_denda')->where('id_m_user_company', Auth::user()->id_m_user_company)->first()
             ];
 
             $url = "Laporan Absensi $name ($start ~ $end).xlsx";
@@ -220,6 +323,103 @@ class DailyAttendanceController extends Controller
                 'status' => 200
             ]);
         } catch (\Exception $e) {
+            throw $e;
+        }
+    }
+
+    public function ExportExcelAttendanceSummary(Request $request)
+    {
+        try {
+
+            $name = Auth::user()->name;
+            $auth = Auth::user();
+            $personels = Personel::has(
+                'WorkPersonel'
+            )->where('id_m_user_company', $auth->id_m_user_company);
+
+            if (isset($request->departemen) && $request->departemen != null) {
+                $personels->where('id_m_departemen', $request->departemen);
+            }
+            $personels = $personels->get();
+            foreach ($personels as $personel) {
+                $start = new Carbon($personel->WorkPersonel->m_work_personel_time);
+                if (strtotime($request->start_date) > strtotime($personel->WorkPersonel->m_work_personel_time)) {
+                    $start = new Carbon($request->start_date);
+                }
+                $end = new Carbon($request->end_date);
+                $period = CarbonPeriod::create($start, $end);
+
+                $filter_date = [];
+
+                foreach ($period as $date) {
+                    $filter_date[] = $date->format('Y-m-d');
+                }
+
+                $absensis = Absensi::whereBetween('t_absensi_Dates', [$request->start_date, $request->end_date])
+                    ->whereNotNull('t_absensi_endClock')
+                    ->where('id_m_personel', $personel->id_m_personel)
+                    ->whereIn('t_absensi_status', [1, 2])
+                    ->get();
+                $kehadiran = 0;
+                $terlambat = 0;
+                $tidak_terlambat = 0;
+                $wfh = 0;
+                $total_jam = null;
+                foreach ($absensis as $absensi) {
+                    $filter_date = Arr::where($filter_date, function ($row) use ($absensi) {
+                        return $row != $absensi->t_absensi_Dates;
+                    });
+
+                    ++$kehadiran;
+                    $datang = strtotime($absensi->t_absensi_startClock);
+                    $pulang = strtotime($absensi->t_absensi_endClock);
+                    $jam_kerja = floor(($pulang - $datang) / 3600);
+                    $total_jam = $total_jam + $jam_kerja;
+                    if ($absensi->t_absensi_isLate == 2) {
+                        $terlambat += 1;
+                    } else {
+                        $tidak_terlambat += 1;
+                    }
+
+                    if ($absensi->t_absensi_status == 2) $wfh += 1;
+                }
+                $personel->kehadiran = $kehadiran;
+                $personel->terlambat = $terlambat;
+                $personel->wfh = $wfh;
+                $personel->tidak_terlambat = $tidak_terlambat;
+                $personel->tidak_hadir = count($filter_date);
+                $personel->total_jam = $total_jam;
+            }
+
+            $start = date('d-m-Y', strtotime($request->start_date));
+            $end = date('d-m-Y', strtotime($request->end_date));
+
+            if ($personels->count() < 1) {
+                return response()->json([
+                    'status' => 404,
+                    'message' => 'Data tidak ditemukan'
+                ]);
+            }
+
+            $data = [
+                'attendance' => $personels,
+            ];
+
+            $url = "Laporan Ringkasan Kehadiran $name ($start ~ $end).xlsx";
+            $excel = Excel::store(new AttendanceSummary($data), $url, 'excel', null, [
+                'visibility' => 'public',
+            ]);
+
+            return response()->json([
+                'url' => url('excel/' . $url),
+                'message' => 'Data Ditemukan',
+                'status' => 200
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => $e->getMessage(),
+                'status' => 401
+            ]);
             throw $e;
         }
     }

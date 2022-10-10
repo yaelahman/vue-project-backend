@@ -50,10 +50,10 @@ class PersonelTimeWorkController extends Controller
         );
     }
 
-    public function getDataEditPersonel()
+    public function getDataEditPersonel(Request $request)
     {
         $auth = Auth::user();
-        $get_personel = Personel::where('id_m_user_company', $auth->id_m_user_company)->whereNotIn('id_m_personel', WorkPersonel::select('id_m_personel')->get())->get();
+        $get_personel = Personel::where('id_m_user_company', $auth->id_m_user_company)->whereNotIn('id_m_personel', WorkPersonel::select('id_m_personel')->where('id_m_work_personel', '!=', $request->except)->get())->get();
 
         return $this->sendResponse(
             Fungsi::STATUS_SUCCESS,

@@ -42,4 +42,9 @@ class Permit extends Model
     {
         return $this->hasMany('App\Models\PermitImage', 'id_permit_application', 'id_permit_application');
     }
+
+    public static function ExpiredPermit()
+    {
+        $permit = Permit::where('created_at', '>', date('Y-m-d'))->get();
+    }
 }

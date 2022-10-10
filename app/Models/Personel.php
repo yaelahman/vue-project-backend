@@ -18,6 +18,11 @@ class Personel extends Model
         return $this->hasOne('App\Models\Departemen', 'id_m_departemen', 'id_m_departemen');
     }
 
+    public function WorkPersonel()
+    {
+        return $this->hasOne('App\Models\WorkPersonel', 'id_m_personel', 'id_m_personel');
+    }
+
     public function Absensi()
     {
         return $this->hasOne('App\Models\Absensi', 'id_m_personel', 'id_m_personel')->orderBy('id_t_absensi', 'desc');
