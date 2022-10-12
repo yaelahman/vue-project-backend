@@ -86,6 +86,8 @@ class OvertimeController extends Controller
             $absensi->t_absensi_startClock = $request['absensi']['startClock'] != null ? $request['absensi']['startDate'] . " " . $request['absensi']['startClock'] : null;
             $absensi->t_absensi_endClock = $request['absensi']['endClock'] != null ? $request['absensi']['endDate'] . " " . $request['absensi']['endClock'] : null;
             $absensi->t_absensi_catatan = $request['absensi']['catatan'];
+            $absensi->t_absensi_status_admin = $request['absensi']['status_admin'];
+            $absensi->t_absensi_catatan_admin = $request['absensi']['catatan_admin'];
             $absensi->t_absensi_status = 3;
             $absensi->updated_at = Carbon::now();
             $absensi->save();
@@ -113,9 +115,41 @@ class OvertimeController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function show($id)
+    public function approve(Request $request)
     {
-        //
+        if (!isset($request['catatan'])) {
+            return $this->sendResponse(
+                Fungsi::STATUS_ERROR,
+                'Harap inputkan catatan'
+            );
+        }
+        DB::beginTransaction();
+        try {
+            $auth = Auth::user();
+            $id = $request['id'];
+            $type = $request['type'];
+            $message = "Berhasil $type lembur";
+
+            $absensi = Absensi::findOrFail($id);
+            $absensi->t_absensi_status_admin = $type == 'tolak' ? 2 : 1;
+            $absensi->t_absensi_catatan_admin = $request['catatan'];
+            $absensi->save();
+
+            DB::commit();
+
+            return $this->sendResponse(
+                Fungsi::STATUS_SUCCESS,
+                $message
+            );
+        } catch (\Exception $th) {
+            // Log::info($th);
+            throw $th;
+            DB::rollback();
+            return $this->sendResponse(
+                Fungsi::STATUS_ERROR,
+                "Terjadi Kesalahan",
+            );
+        }
     }
 
     /**

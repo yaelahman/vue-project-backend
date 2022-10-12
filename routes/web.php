@@ -151,6 +151,7 @@ $router->group([
     // Overtime
     $router->get('/overtime', 'Web\OvertimeController@index');
     $router->post('/overtime', 'Web\OvertimeController@store');
+    $router->post('/overtime/approve', 'Web\OvertimeController@approve');
     $router->delete('/overtime/{id}', 'Web\OvertimeController@destroy');
 
     // Visit

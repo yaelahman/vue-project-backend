@@ -265,7 +265,7 @@ class DailyAttendanceController extends Controller
             return $this->sendResponse(
                 Fungsi::STATUS_SUCCESS,
                 Fungsi::MES_SUCCESS,
-                $filter_date
+                array_values($filter_date)
                 // count($period->toArray())
                 // $detail->get()->pluck('t_absensi_Dates')
             );

@@ -14,19 +14,23 @@ use Illuminate\Support\Facades\Log;
 
 class PersonelTimeWorkController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $auth = Auth::user();
         $personel_time_works = WorkPersonel::with(['getPersonel' => function ($query) {
             $query->with('Departemen');
         }])->with('getWorkPattern')
             ->where('id_m_user_company', $auth->id_m_user_company)
-            ->orderBy('id_m_work_personel', 'DESC')->get();
+            ->orderBy('id_m_work_personel', 'DESC');
+
+        if (isset($request->id_work_pattern) && $request->id_work_pattern != null) {
+            $personel_time_works->where('id_m_work_patern', $request->id_work_pattern);
+        }
 
         return $this->sendResponse(
             Fungsi::STATUS_SUCCESS,
             Fungsi::MES_SUCCESS,
-            $personel_time_works
+            $personel_time_works->get()
         );
     }
 
