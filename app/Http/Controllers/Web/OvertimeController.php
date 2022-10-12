@@ -117,7 +117,7 @@ class OvertimeController extends Controller
      */
     public function approve(Request $request)
     {
-        if (!isset($request['catatan'])) {
+        if (!isset($request['catatan']) && $request['type'] == "tolak") {
             return $this->sendResponse(
                 Fungsi::STATUS_ERROR,
                 'Harap inputkan catatan'
