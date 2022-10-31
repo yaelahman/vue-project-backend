@@ -22,7 +22,10 @@ class AttendanceSpotController extends Controller
             ->get();
 
         foreach ($attendance_spots as $attendance_spot) {
-            $attendance_spot->count_personel = AttendancePersonel::where('id_m_attendance_spots', $attendance_spot->id_m_attendance_spots)->count();
+            $attendance_spot->count_personel = AttendancePersonel::where('id_m_attendance_spots', $attendance_spot->id_m_attendance_spots)
+                ->whereHas('getPersonel', function ($query) {
+                    $query->where('m_personel_status', 1);
+                })->count();
         }
 
         return $this->sendResponse(

@@ -39,10 +39,12 @@ class Kernel extends ConsoleKernel
                     }
                 } else {
                     $permit_date = PermitDate::where('id_permit_application', $row->id_permit_application)->orderBy('id_permit_date', 'desc')->first();
-                    if (date('Y-m-d', strtotime($permit_date->permit_date)) < date('Y-m-d')) {
-                        $update = Permit::find($permit_date->id_permit_application);
-                        $update->permit_status = 3;
-                        $update->save();
+                    if ($permit_date) {
+                        if (date('Y-m-d', strtotime($permit_date->permit_date)) < date('Y-m-d')) {
+                            $update = Permit::find($permit_date->id_permit_application);
+                            $update->permit_status = 3;
+                            $update->save();
+                        }
                     }
                 }
             }

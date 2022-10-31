@@ -94,6 +94,7 @@ class DataPersonelController extends Controller
             $personel->username = $request['data_personel']['username'];
             $personel->m_personel_gender = $request['data_personel']['m_personel_gender'];
             $personel->m_personel_email = $request['data_personel']['m_personel_email'];
+            $personel->m_personel_status = $request['data_personel']['m_personel_status'];
             $personel->id_m_departemen = $request['data_personel']['id_m_departemen'];
             $personel->total_leave = $request['data_personel']['total_leave'];
             $personel->remaining_leave = $request['data_personel']['total_leave'];

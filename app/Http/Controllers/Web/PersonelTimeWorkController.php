@@ -20,6 +20,9 @@ class PersonelTimeWorkController extends Controller
         $personel_time_works = WorkPersonel::with(['getPersonel' => function ($query) {
             $query->with('Departemen');
         }])->with('getWorkPattern')
+            ->whereHas('getPersonel', function ($query) {
+                $query->where('m_personel_status', 1);
+            })
             ->where('id_m_user_company', $auth->id_m_user_company)
             ->orderBy('id_m_work_personel', 'DESC');
 

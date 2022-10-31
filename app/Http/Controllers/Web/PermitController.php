@@ -28,6 +28,8 @@ class PermitController extends Controller
             }, 'PermitDate'
         ])->whereHas('Personel', function ($q) use ($auth) {
             $q->where('id_m_user_company', $auth->id_m_user_company);
+        })->whereHas('Personel', function ($query) {
+            $query->where('m_personel_status', 1);
         })->orderBy('id_permit_application', 'desc');
 
         if ($request->startDate != null && $request->endDate != null) {
@@ -66,10 +68,13 @@ class PermitController extends Controller
                 }, 'PermitDate'
             ])->whereHas('Personel', function ($q) use ($auth) {
                 $q->where('id_m_user_company', $auth->id_m_user_company);
+            })->whereHas('Personel', function ($query) {
+                $query->where('m_personel_status', 1);
             })->orderBy('id_permit_application', 'desc');
 
             if (isset($request->start_date) && isset($request->end_date)) {
-                $permits->whereBetween('created_at', [$request->start_date, $request->end_date]);
+                $permits->whereDate('created_at', '>=', $request->start_date);
+                $permits->whereDate('created_at', '<=', $request->end_date);
             }
 
             if (isset($request->status) && $request->status != null) {
@@ -104,7 +109,7 @@ class PermitController extends Controller
             \Log::info($err);
 
             return response()->json([
-                'message' => 'Data Tidak Ditemukan',
+                'message' => 'Terjadi Kesalahan',
                 'status' => 404
             ]);
         }

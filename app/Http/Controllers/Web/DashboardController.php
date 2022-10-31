@@ -170,8 +170,12 @@ class DashboardController extends Controller
             ->get()->pluck('id_m_personel');
 
         $personel = Personel::whereNotIn('id_m_personel', $absensi)
+            ->where('m_personel_status', 1)
             ->where('id_m_user_company', $auth->id_m_user_company)
             ->with('Departemen')
+            ->with(['WorkPersonel' => function ($query) {
+                $query->with('getWorkPattern');
+            }])
             ->get();
 
         return $this->send_response($personel);
@@ -187,12 +191,13 @@ class DashboardController extends Controller
             ->get()->pluck('id_m_personel');
 
         $personel = Personel::whereIn('m_personel.id_m_personel', $absensi)
+            ->where('m_personel_status', 1)
             ->where('m_personel.id_m_user_company', $auth->id_m_user_company)
             ->join('m_departemen', 'm_departemen.id_m_departemen', '=', 'm_personel.id_m_departemen')
             ->join('t_absensi', 't_absensi.id_m_personel', '=', 'm_personel.id_m_personel')
-            // ->with(['Departemen', 'Absensi' => function ($query) {
-            //     $query->whereIn('t_absensi_status', [1, 2]);
-            // }])
+            ->with(['WorkPersonel' => function ($query) {
+                $query->with('getWorkPattern');
+            }])
             ->whereDate('t_absensi.t_absensi_Dates', date('Y-m-d'))
             ->whereIn('t_absensi.t_absensi_status', [1, 2])
             ->orderBy('t_absensi.t_absensi_startClock', 'ASC')
@@ -211,9 +216,13 @@ class DashboardController extends Controller
             ->get()->pluck('id_m_personel');
 
         $personel = Personel::whereIn('id_m_personel', $absensi)
+            ->where('m_personel_status', 1)
             ->where('id_m_user_company', $auth->id_m_user_company)
             ->with(['Departemen', 'Absensi' => function ($query) {
                 $query->whereIn('t_absensi_status', [2]);
+            }])
+            ->with(['WorkPersonel' => function ($query) {
+                $query->with('getWorkPattern');
             }])
             ->get();
 
@@ -227,7 +236,9 @@ class DashboardController extends Controller
         $absensi = Absensi::where('t_absensi_Dates', date('Y-m-d'))
             ->with(['Personel' => function ($query) {
                 $query->with('Departemen');
-            }])
+            }])->whereHas('Personel', function ($query) {
+                $query->where('m_personel_status', 1);
+            })
             ->whereIn('t_absensi_status', [4])
             ->where('id_m_user_company', $auth->id_m_user_company)
             ->get();
@@ -254,7 +265,7 @@ class DashboardController extends Controller
             ->where('permit_status', 1)
             ->get()->pluck('id_m_personel');
 
-        $hari = Permit::whereHas('PermitDate', function($query) {
+        $hari = Permit::whereHas('PermitDate', function ($query) {
             $query->whereDate('permit_date', date('Y-m-d'));
         })
             ->whereHas('Personel', function ($query) use ($auth) {
@@ -265,6 +276,7 @@ class DashboardController extends Controller
             ->get()->pluck('id_m_personel');
 
         $personel = Personel::whereIn('id_m_personel', $jam)
+            ->where('m_personel_status', 1)
             ->where('id_m_user_company', $auth->id_m_user_company)
             ->with(['Departemen', 'Permit' => function ($query) {
                 $query->whereIn('permit_type', [1]);
@@ -273,11 +285,12 @@ class DashboardController extends Controller
             }])
             ->get();
         $personel2 = Personel::whereIn('id_m_personel', $hari)
+            ->where('m_personel_status', 1)
             ->where('id_m_user_company', $auth->id_m_user_company)
             ->with(['Departemen', 'Permit' => function ($query) {
                 $query->whereIn('permit_type', [2]);
                 $query->where('permit_status', 1);
-                $query->whereHas('PermitDate', function($query) {
+                $query->whereHas('PermitDate', function ($query) {
                     $query->whereDate('permit_date', date('Y-m-d'));
                 });
             }])
@@ -303,6 +316,7 @@ class DashboardController extends Controller
 
         $personel = Personel::whereIn('id_m_personel', $cuti)
             ->where('id_m_user_company', $auth->id_m_user_company)
+            ->where('m_personel_status', 1)
             ->with(['Departemen', 'Permit' => function ($query) {
                 $query->whereIn('permit_type', [3]);
                 $query->where('permit_status', 1);
@@ -317,19 +331,27 @@ class DashboardController extends Controller
         $jam = Permit::where([
             'permit_status' => 0,
             'permit_type' => 1
-        ])->count();
+        ])->whereHas('Personel', function ($query) {
+            $query->where('m_personel_status', 1);
+        })->count();
         $hari = Permit::where([
             'permit_status' => 0,
             'permit_type' => 2
-        ])->count();
+        ])->whereHas('Personel', function ($query) {
+            $query->where('m_personel_status', 1);
+        })->count();
         $cuti = Permit::where([
             'permit_status' => 0,
             'permit_type' => 3
-        ])->count();
+        ])->whereHas('Personel', function ($query) {
+            $query->where('m_personel_status', 1);
+        })->count();
         $lembur = Absensi::where([
             't_absensi_status_admin' => 0,
             't_absensi_status' => 3
-        ])->count();
+        ])->whereHas('Personel', function ($query) {
+            $query->where('m_personel_status', 1);
+        })->count();
 
         return $this->send_response([
             'jam' => $jam,

@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Absensi;
 use App\Models\AbsensiPhoto;
 use App\Models\DeviceSettings;
+use App\Models\Permit;
 use App\Models\Personel;
 use App\Models\WorkPersonel;
 use Carbon\Carbon;
@@ -37,6 +38,9 @@ class DailyAttendanceController extends Controller
             ->has('WorkPersonel')
             ->with('PhotoAbsensi')
             ->with('Personel')
+            ->whereHas('Personel', function ($query) {
+                $query->where('m_personel_status', 1);
+            })
             ->with(['WorkPersonel' => function ($query) {
                 $query->with(['getWorkPattern', 'getWorkSchedule']);
             }])->orderBy('t_absensi_startClock');
@@ -163,7 +167,7 @@ class DailyAttendanceController extends Controller
             $auth = Auth::user();
             $personels = Personel::has(
                 'WorkPersonel'
-            )->where('id_m_user_company', $auth->id_m_user_company);
+            )->where('m_personel_status', 1)->where('id_m_user_company', $auth->id_m_user_company);
 
             if (isset($request->departemen) && $request->departemen != null) {
                 $personels->where('id_m_departemen', $request->departemen);
@@ -193,6 +197,21 @@ class DailyAttendanceController extends Controller
                 $tidak_terlambat = 0;
                 $wfh = 0;
                 $total_jam = null;
+                $total_cuti = 0;
+                $cuti = Permit::where([
+                    'permit_type' => 3,
+                    'permit_status' => 1,
+                    'id_m_personel' => $personel->id_m_personel
+                ])->with('PermitDate')->get();
+
+                foreach ($cuti as $ct) {
+                    foreach ($ct->PermitDate as $pd) {
+                        if (date('Y-m-d', strtotime($pd->permit_date)) >= $request->startDate && date('Y-m-d', strtotime($pd->permit_date)) <= $request->endDate) {
+                            $total_cuti += 1;
+                        }
+                    }
+                }
+
                 foreach ($absensis as $absensi) {
                     $filter_date = Arr::where($filter_date, function ($row) use ($absensi) {
                         return $row != $absensi->t_absensi_Dates;
@@ -211,12 +230,14 @@ class DailyAttendanceController extends Controller
 
                     if ($absensi->t_absensi_status == 2) $wfh += 1;
                 }
+
                 $personel->kehadiran = $kehadiran;
                 $personel->terlambat = $terlambat;
                 $personel->wfh = $wfh;
                 $personel->tidak_terlambat = $tidak_terlambat;
                 $personel->tidak_hadir = count($filter_date);
                 $personel->total_jam = $total_jam;
+                $personel->total_cuti = $total_cuti;
             }
 
             return $this->sendResponse(
@@ -281,6 +302,7 @@ class DailyAttendanceController extends Controller
     {
         try {
 
+            $auth = Auth::user();
             $name = Auth::user()->name;
             // dd($auth);
             $absensi = Absensi::with([
@@ -290,7 +312,11 @@ class DailyAttendanceController extends Controller
                 'WorkPersonel' => function ($query) {
                     $query->with(['getWorkPattern']);
                 }
-            ])->has('WorkPersonel')->whereIn('t_absensi_status', [1, 2])->orderBy('t_absensi_startClock');
+            ])->where('id_m_user_company', $auth->id_m_user_company)
+                ->whereHas('Personel', function ($query) {
+                    $query->where('m_personel_status', 1);
+                })
+                ->has('WorkPersonel')->whereIn('t_absensi_status', [1, 2])->orderBy('t_absensi_startClock');
 
             if (isset($request->start_date) && isset($request->end_date)) {
                 $absensi->where('t_absensi_Dates', '>=', $request->start_date);

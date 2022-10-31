@@ -33,9 +33,10 @@
                     $start = strtotime($start[1]);
                     $end = strtotime($end[1]);
                     $result = $end - $start;
-                    $jam = $result / 60 / 60;
+                    $jam = $result / 60 ;
+                    $exp_jam = explode('.', round($jam / 60, 1));
                 @endphp
-                <td>{{ $jam < 0 ? 0 : explode('.', $jam)[0] }} Jam</td>
+                <td>{{ $jam < 0 ? 0 : explode('.', $jam / 60)[0] }} Jam {{ isset($exp_jam[1]) ? ($exp_jam[1] / 10) * 60 . " Menit" : '' }}</td>
                 {{-- <td>{{ $jam }}</td> --}}
                 <td>{{ $row->permit_description }}</td>
                 <td>{{ \App\Models\Permit::STATUS[$row->permit_status] }}</td>

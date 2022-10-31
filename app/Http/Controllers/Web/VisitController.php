@@ -29,6 +29,9 @@ class VisitController extends Controller
         $absensi = Absensi::where('t_absensi_status', 4)
             ->orderBy('t_absensi_startClock')
             // ->has('WorkPersonel')
+            ->whereHas('Personel', function ($query) {
+                $query->where('m_personel_status', 1);
+            })
             ->where('id_m_user_company', $this->auth()->id_m_user_company)
             ->with('PhotoAbsensi')
             ->with('Personel');
@@ -167,6 +170,7 @@ class VisitController extends Controller
 
     public function ExportExcel(Request $request)
     {
+        $auth = Auth::user();
         $name = Auth::user()->name;
         $absensi = Absensi::with([
             'Personel' => function ($query) {
@@ -176,7 +180,11 @@ class VisitController extends Controller
                 $query->with(['getWorkPattern']);
             }
         ])
+            ->where('id_m_user_company', $auth->id_m_user_company)
             // ->has('WorkPersonel')
+            ->whereHas('Personel', function ($query) {
+                $query->where('m_personel_status', 1);
+            })
             ->where('t_absensi_status', 4)->orderBy('t_absensi_startClock');
 
         if ($request->start_date != null && $request->end_date != null) {

@@ -29,6 +29,9 @@ class OvertimeController extends Controller
         $absensi = Absensi::where('t_absensi_status', 3)
             // ->orderBy('id_t_absensi', 'desc')
             // ->has('WorkPersonel')
+            ->whereHas('Personel', function ($query) {
+                $query->where('m_personel_status', 1);
+            })
             ->where('id_m_user_company', $this->auth()->id_m_user_company)
             ->with('PhotoAbsensi')
             ->with('Personel')
@@ -206,6 +209,7 @@ class OvertimeController extends Controller
 
     public function ExportExcel(Request $request)
     {
+        $auth = Auth::user();
         $name = Auth::user()->name;
         $absensi = Absensi::with([
             'Personel' => function ($query) {
@@ -216,6 +220,10 @@ class OvertimeController extends Controller
             }
         ])
             // ->has('WorkPersonel')
+            ->where('id_m_user_company', $auth->id_m_user_company)
+            ->whereHas('Personel', function ($query) {
+                $query->where('m_personel_status', 1);
+            })
             ->where('t_absensi_status', 3)->orderBy('t_absensi_startClock');
 
         if (isset($request->start_date) && isset($request->end_date)) {

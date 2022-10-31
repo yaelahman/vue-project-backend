@@ -15,7 +15,9 @@ class AttendancePersonelController extends Controller
 {
     public function index($id)
     {
-        $attendance_personels = AttendancePersonel::with('getPersonel')->where('id_m_attendance_spots', $id)->get();
+        $attendance_personels = AttendancePersonel::with('getPersonel')->whereHas('getPersonel', function ($query) {
+            $query->where('m_personel_status', 1);
+        })->where('id_m_attendance_spots', $id)->get();
 
         return $this->sendResponse(
             Fungsi::STATUS_SUCCESS,
@@ -30,11 +32,11 @@ class AttendancePersonelController extends Controller
         $get_attendance_personels = AttendancePersonel::where('id_m_user_company', $auth->id_m_user_company)->get();
         $data = [];
 
-        foreach($get_attendance_personels as $get_attendance_personel){
+        foreach ($get_attendance_personels as $get_attendance_personel) {
             $data['id_m_personel'] = array_push($data, $get_attendance_personel->id_m_personel);
         }
 
-        $get_personel = Personel::where('id_m_user_company', $auth->id_m_user_company)->whereNotIn('id_m_personel', $data)->get();
+        $get_personel = Personel::where('id_m_user_company', $auth->id_m_user_company)->where('m_personel_status', 1)->whereNotIn('id_m_personel', $data)->get();
 
         return $this->sendResponse(
             Fungsi::STATUS_SUCCESS,
@@ -48,7 +50,7 @@ class AttendancePersonelController extends Controller
         $auth = Auth::user();
         $message = 'Berhasil menambahkan Personel di Attendance Spot';
 
-        foreach($request['selected'] as $val) {
+        foreach ($request['selected'] as $val) {
             $attendance_personel = new AttendancePersonel();
             $attendance_personel->id_m_personel = $val;
             $attendance_personel->id_m_attendance_spots = $request->id;

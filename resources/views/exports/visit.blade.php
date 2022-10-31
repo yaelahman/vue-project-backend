@@ -25,7 +25,7 @@
                 @endphp
                 <td>{{ date('d-m-Y', strtotime($start[0])) }}</td>
                 <td>{{ date('H:i:s', strtotime($start[1])) }}</td>
-                <td>{{ isset($end) && isset($end[0]) ? date('d-m-Y', strtotime($end[0])) : '-' }}</td>
+                <td>{{ isset($end) && $end[0] != null && $end[0] != '-' ? date('d-m-Y', strtotime($end[0])) : '-' }}</td>
                 <td>{{ isset($end) && isset($end[1]) ? date('H:i:s', strtotime($end[1])) : '-' }}</td>
                 <td>{{ $row->t_absensi_catatan }}</td>
             </tr>
