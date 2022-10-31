@@ -32,14 +32,14 @@ class Kernel extends ConsoleKernel
             $permit = Permit::where('permit_status', 0)->get();
             foreach ($permit as $row) {
                 if ($row->permit_endclock != null) {
-                    if (date('Y-m-d', strtotime($row->permit_endclock)) <= date('Y-m-d')) {
+                    if (date('Y-m-d', strtotime($row->permit_endclock)) < date('Y-m-d')) {
                         $update = Permit::find($row->id_permit_application);
                         $update->permit_status = 3;
                         $update->save();
                     }
                 } else {
                     $permit_date = PermitDate::where('id_permit_application', $row->id_permit_application)->orderBy('id_permit_date', 'desc')->first();
-                    if (date('Y-m-d', strtotime($permit_date->permit_date)) <= date('Y-m-d')) {
+                    if (date('Y-m-d', strtotime($permit_date->permit_date)) < date('Y-m-d')) {
                         $update = Permit::find($permit_date->id_permit_application);
                         $update->permit_status = 3;
                         $update->save();
