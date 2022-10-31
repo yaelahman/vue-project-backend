@@ -24,7 +24,12 @@
                 <td>{{ date('d-m-Y H:i:s', strtotime($row->created_at)) }}</td>
                 @php
                     $start = explode(' ', $row->t_absensi_startClock);
-                    $end = explode(' ', $row->t_absensi_endClock);
+                    if($row->t_absensi_endClock != null){
+
+                        $end = explode(' ', $row->t_absensi_endClock);
+                    }else {
+                        $end = '-';
+                    }
                 @endphp
                 <td>{{ date('d-m-Y', strtotime($start[0])) }}</td>
                 <td>{{ date('H:i:s', strtotime($start[1])) }}</td>
@@ -32,7 +37,7 @@
                 <td>{{ isset($end) && isset($end[1]) ? date('H:i:s', strtotime($end[1])) : '-' }}</td>
                 @php
                     $start = strtotime($row->t_absensi_startClock);
-                    $end = strtotime($row->t_absensi_endClock);
+                    $end = strtotime($row->t_absensi_endClock != null ? $row->t_absensi_endClock : date('Y-m-d H:i:s'));
                     $result = $end - $start;
                     $menit = $result / 60;
                 @endphp

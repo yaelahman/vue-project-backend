@@ -36,8 +36,12 @@ class OvertimeController extends Controller
 
         if ($request->startDate != null && $request->endDate != null) {
             $absensi->whereBetween('t_absensi_Dates', [$request->startDate, $request->endDate]);
+            if (isset($request->status) && $request->status != null) {
+                $absensi->where('t_absensi_status_admin', $request->status);
+            }
         } else {
-            $absensi->where('t_absensi_Dates', 'ILIKE', $t_absensi_Dates);
+            $absensi->where('t_absensi_status_admin', 0);
+            // $absensi->where('t_absensi_Dates', 'ILIKE', $t_absensi_Dates);
         }
 
         $absensi = $absensi->get();
@@ -217,6 +221,9 @@ class OvertimeController extends Controller
         if (isset($request->start_date) && isset($request->end_date)) {
             $absensi->where('t_absensi_Dates', '>=', $request->start_date);
             $absensi->where('t_absensi_Dates', '<=', $request->end_date);
+            if (isset($request->status) && $request->status != null) {
+                $absensi->where('t_absensi_status_admin', $request->status);
+            }
         }
 
         $start = date('d-m-Y', strtotime($request->start_date));

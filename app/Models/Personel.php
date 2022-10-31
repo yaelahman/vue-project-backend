@@ -27,4 +27,8 @@ class Personel extends Model
     {
         return $this->hasOne('App\Models\Absensi', 'id_m_personel', 'id_m_personel')->orderBy('id_t_absensi', 'desc');
     }
+    public function Permit()
+    {
+        return $this->hasOne('App\Models\Permit', 'id_m_personel', 'id_m_personel')->orderBy('id_permit_application', 'desc');
+    }
 }

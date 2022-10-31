@@ -8,6 +8,7 @@ use App\Models\Personel;
 use App\Models\UserCompany;
 use App\Models\Absensi;
 use App\Models\CompanyIndustri;
+use App\Models\Permit;
 use App\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -224,18 +225,118 @@ class DashboardController extends Controller
         $auth = Auth::user();
 
         $absensi = Absensi::where('t_absensi_Dates', date('Y-m-d'))
+            ->with(['Personel' => function ($query) {
+                $query->with('Departemen');
+            }])
             ->whereIn('t_absensi_status', [4])
             ->where('id_m_user_company', $auth->id_m_user_company)
+            ->get();
+
+        // $personel = Personel::whereIn('id_m_personel', $absensi)
+        //     ->where('id_m_user_company', $auth->id_m_user_company)
+        //     ->with(['Departemen', 'Absensi' => function ($query) {
+        //         $query->whereIn('t_absensi_status', [4]);
+        //     }])
+        //     ->get();
+
+        return $this->send_response($absensi);
+    }
+
+    public function checkIzin()
+    {
+        $auth = Auth::user();
+
+        $jam = Permit::whereDate('permit_startclock', date('Y-m-d'))
+            ->whereHas('Personel', function ($query) use ($auth) {
+                $query->where('id_m_user_company', $auth->id_m_user_company);
+            })
+            ->whereIn('permit_type', [1])
+            ->where('permit_status', 1)
             ->get()->pluck('id_m_personel');
 
-        $personel = Personel::whereIn('id_m_personel', $absensi)
+        $hari = Permit::whereHas('PermitDate', function($query) {
+            $query->whereDate('permit_date', date('Y-m-d'));
+        })
+            ->whereHas('Personel', function ($query) use ($auth) {
+                $query->where('id_m_user_company', $auth->id_m_user_company);
+            })
+            ->whereIn('permit_type', [2])
+            ->where('permit_status', 1)
+            ->get()->pluck('id_m_personel');
+
+        $personel = Personel::whereIn('id_m_personel', $jam)
             ->where('id_m_user_company', $auth->id_m_user_company)
-            ->with(['Departemen', 'Absensi' => function ($query) {
-                $query->whereIn('t_absensi_status', [4]);
+            ->with(['Departemen', 'Permit' => function ($query) {
+                $query->whereIn('permit_type', [1]);
+                $query->where('permit_status', 1);
+                $query->whereDate('permit_startclock', date('Y-m-d'));
+            }])
+            ->get();
+        $personel2 = Personel::whereIn('id_m_personel', $hari)
+            ->where('id_m_user_company', $auth->id_m_user_company)
+            ->with(['Departemen', 'Permit' => function ($query) {
+                $query->whereIn('permit_type', [2]);
+                $query->where('permit_status', 1);
+                $query->whereHas('PermitDate', function($query) {
+                    $query->whereDate('permit_date', date('Y-m-d'));
+                });
+            }])
+            ->get();
+
+        return $this->send_response([
+            'jam' => $personel,
+            'hari' => $personel2
+        ]);
+    }
+
+    public function checkCuti()
+    {
+        $auth = Auth::user();
+
+        $cuti = Permit::whereDate('created_at', date('Y-m-d'))
+            ->whereHas('Personel', function ($query) use ($auth) {
+                $query->where('id_m_user_company', $auth->id_m_user_company);
+            })
+            ->whereIn('permit_type', [3])
+            ->where('permit_status', 1)
+            ->get()->pluck('id_m_personel');
+
+        $personel = Personel::whereIn('id_m_personel', $cuti)
+            ->where('id_m_user_company', $auth->id_m_user_company)
+            ->with(['Departemen', 'Permit' => function ($query) {
+                $query->whereIn('permit_type', [3]);
+                $query->where('permit_status', 1);
             }])
             ->get();
 
         return $this->send_response($personel);
+    }
+
+    public function countApproval()
+    {
+        $jam = Permit::where([
+            'permit_status' => 0,
+            'permit_type' => 1
+        ])->count();
+        $hari = Permit::where([
+            'permit_status' => 0,
+            'permit_type' => 2
+        ])->count();
+        $cuti = Permit::where([
+            'permit_status' => 0,
+            'permit_type' => 3
+        ])->count();
+        $lembur = Absensi::where([
+            't_absensi_status_admin' => 0,
+            't_absensi_status' => 3
+        ])->count();
+
+        return $this->send_response([
+            'jam' => $jam,
+            'hari' => $hari,
+            'cuti' => $cuti,
+            'lembur' => $lembur,
+        ]);
     }
 
     public function replaceToMonthFull($param = 'param')

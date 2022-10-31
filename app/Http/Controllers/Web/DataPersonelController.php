@@ -40,7 +40,7 @@ class DataPersonelController extends Controller
             $auth = Auth::user();
             $company = UserCompany::findOrFail($auth->id_m_user_company);
 
-            $message = 'Berhasil menambahkan Personel';
+            $message = 'Berhasil menambahkan Karyawan';
 
             $personel_exists = Personel::where('id_m_user_company', $auth->id_m_user_company)->where('m_personel_personID', $request['data_personel']['m_personel_personID']);
             if ($request->id != null) {
@@ -56,7 +56,7 @@ class DataPersonelController extends Controller
             }
 
             if ($request->id != null) {
-                $message = 'Berhasil memperbarui Company Industri';
+                $message = 'Berhasil memperbarui Karyawan';
                 $personel = Personel::findOrFail($request->id);
                 $personel_exists = Personel::where('username', $request['data_personel']['username'])->where('id_m_personel', '!=', $request->id)->first();
                 if ($personel_exists != null) {
@@ -80,7 +80,7 @@ class DataPersonelController extends Controller
                     DB::rollback();
                     return $this->sendResponse(
                         Fungsi::STATUS_ERROR,
-                        "Gagal, jumlah personel lebih dari total personel perusahaan saat di masukan."
+                        "Gagal, jumlah karyawan lebih dari total karyawan perusahaan saat di masukan."
                     );
                 }
 
@@ -96,7 +96,8 @@ class DataPersonelController extends Controller
             $personel->m_personel_email = $request['data_personel']['m_personel_email'];
             $personel->id_m_departemen = $request['data_personel']['id_m_departemen'];
             $personel->total_leave = $request['data_personel']['total_leave'];
-            $personel->remaining_leave = $personel->remaining_leave != null ? $personel->remaining_leave : $request['data_personel']['total_leave'];
+            $personel->remaining_leave = $request['data_personel']['total_leave'];
+            // $personel->remaining_leave = $personel->remaining_leave != null ? $personel->remaining_leave : $request['data_personel']['total_leave'];
             $personel->effective_date_leave = $request['data_personel']['effective_date_leave'];
             $personel->updated_at = Carbon::now();
             $personel->save();
@@ -164,7 +165,8 @@ class DataPersonelController extends Controller
             Fungsi::STATUS_SUCCESS,
             $message
                 . ' Nama ' . $personel->m_personel_names
-                . ' Person ID ' . $personel->m_personel_personID
+                . ' Person ID ' . $personel->m_personel_personID,
+            $personel
         );
     }
 

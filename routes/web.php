@@ -165,6 +165,9 @@ $router->group([
     $router->get('/checkPersonelSudahAbsen', 'Web\DashboardController@checkPersonelSudahAbsen');
     $router->get('/checkPersonelWFH', 'Web\DashboardController@checkPersonelWFH');
     $router->get('/checkPersonelKunjungan', 'Web\DashboardController@checkPersonelKunjungan');
+    $router->get('/checkIzin', 'Web\DashboardController@checkIzin');
+    $router->get('/checkCuti', 'Web\DashboardController@checkCuti');
+    $router->get('/countApproval', 'Web\DashboardController@countApproval');
     $router->get('/chart', 'Web\DashboardController@chart');
     $router->get('/chart2', 'Web\DashboardController@chart2');
 

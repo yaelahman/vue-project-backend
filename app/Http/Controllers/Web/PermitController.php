@@ -31,11 +31,16 @@ class PermitController extends Controller
         })->orderBy('id_permit_application', 'desc');
 
         if ($request->startDate != null && $request->endDate != null) {
-            $permits->whereBetween('created_at', [$request->startDate, $request->endDate]);
+            $permits->whereDate('created_at', '>=', $request->startDate);
+            $permits->whereDate('created_at', '<=', $request->endDate);
         }
 
         if ($request->status != null) {
             $permits->where('permit_status', $request->status);
+        } else {
+            if ($request->startDate == null && $request->endDate == null) {
+                $permits->where('permit_status', 0);
+            }
         }
 
         return $this->sendResponse(
@@ -48,52 +53,61 @@ class PermitController extends Controller
 
     public function ExportExcel(Request $request)
     {
-        $auth = Auth::user();
-        $type = $request->type;
-        $title = Permit::TYPE[$type];
+        try {
+            $auth = Auth::user();
+            $type = $request->type;
+            $title = Permit::TYPE[$type];
 
-        $permits = Permit::where([
-            'permit_type' => $type
-        ])->with([
-            'Personel' => function ($q) {
-                $q->with('Departemen');
-            }, 'PermitDate'
-        ])->whereHas('Personel', function ($q) use ($auth) {
-            $q->where('id_m_user_company', $auth->id_m_user_company);
-        })->orderBy('id_permit_application', 'desc');
+            $permits = Permit::where([
+                'permit_type' => $type
+            ])->with([
+                'Personel' => function ($q) {
+                    $q->with('Departemen');
+                }, 'PermitDate'
+            ])->whereHas('Personel', function ($q) use ($auth) {
+                $q->where('id_m_user_company', $auth->id_m_user_company);
+            })->orderBy('id_permit_application', 'desc');
 
-        if (isset($request->start_date) && isset($request->end_date)) {
-            $permits->whereBetween('created_at', [$request->start_date, $request->end_date]);
-        }
+            if (isset($request->start_date) && isset($request->end_date)) {
+                $permits->whereBetween('created_at', [$request->start_date, $request->end_date]);
+            }
 
-        if (isset($request->status) && $request->status != null) {
-            $permits->where('permit_status', $request->status);
-        }
+            if (isset($request->status) && $request->status != null) {
+                $permits->where('permit_status', $request->status);
+            }
 
-        $start = date('d-m-Y', strtotime($request->start_date));
-        $end = date('d-m-Y', strtotime($request->end_date));
+            $start = date('d-m-Y', strtotime($request->start_date));
+            $end = date('d-m-Y', strtotime($request->end_date));
 
-        if ($permits->count() < 1) {
+            if ($permits->count() < 1) {
+                return response()->json([
+                    'status' => 404,
+                    'message' => 'Data tidak ditemukan'
+                ]);
+            }
+
+            $data = [
+                'permits' => $permits->get()
+            ];
+
+            $url = "Laporan Izin $title $auth->name ($start ~ $end).xlsx";
+            $excel = Excel::store(new PermitExport($data, $type), $url, 'excel', null, [
+                'visibility' => 'public',
+            ]);
+
             return response()->json([
-                'status' => 404,
-                'message' => 'Data tidak ditemukan'
+                'url' => url('excel/' . $url),
+                'message' => 'Data Ditemukan',
+                'status' => 200
+            ]);
+        } catch (\Exception $err) {
+            \Log::info($err);
+
+            return response()->json([
+                'message' => 'Data Tidak Ditemukan',
+                'status' => 404
             ]);
         }
-
-        $data = [
-            'permits' => $permits->get()
-        ];
-
-        $url = "Laporan Izin $title $auth->name ($start ~ $end).xlsx";
-        $excel = Excel::store(new PermitExport($data, $type), $url, 'excel', null, [
-            'visibility' => 'public',
-        ]);
-
-        return response()->json([
-            'url' => url('excel/' . $url),
-            'message' => 'Data Ditemukan',
-            'status' => 200
-        ]);
     }
 
     public function detail(Request $request, $id)
@@ -139,22 +153,28 @@ class PermitController extends Controller
             $permit->save();
 
             $personel = Personel::find($permit->id_m_personel);
+            $approval = PermitApproval::where('id_permit_application', $id)->first();
+            if (!$approval) $approval = new PermitApproval();
+
             if ($personel->remaining_leave < 1 && $permit->permit_type == 3 && $type != 'tolak') {
                 return $this->sendResponse(
                     Fungsi::STATUS_ERROR,
                     "Jatah Cuti $personel->m_personel_names Telah Habis"
                 );
             }
-            $personel->remaining_leave = $type == 'setuju' ? ($personel->remaining_leave - 1) : $personel->remaining_leave;
+            if ($permit->permit_type == 3) {
 
-            $approval = PermitApproval::where('id_permit_application', $id)->first();
-            if (!$approval) $approval = new PermitApproval();
+                $setuju = $approval->permit_approval_status == 1 ? $personel->remaining_leave : ($personel->remaining_leave - count($permit->PermitDate));
+                $tolak = $approval->permit_approval_status == 1 ? ($personel->remaining_leave + count($permit->PermitDate)) : $personel->remaining_leave;
+                $personel->remaining_leave = $type == 'setuju' ? $setuju : $tolak;
+            }
+            $personel->save();
+
             $approval->id_permit_application =  $id;
             $approval->id_m_user_company = $auth->id_m_user_company;
             $approval->permit_approval_status = $type == 'tolak' ? 2 : 1;
             $approval->permit_approval_reason = $request['catatan'];
             $approval->save();
-
             DB::commit();
 
             return $this->sendResponse(

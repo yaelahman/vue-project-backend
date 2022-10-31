@@ -70,17 +70,30 @@ class PersonelTimeWorkController extends Controller
     {
         DB::beginTransaction();
         try {
+
+            $check = WorkPersonel::where('id_m_personel', $request['personel_time_work']['id_m_personel'])->first();
+            if ($check) {
+                return $this->sendResponse(
+                    Fungsi::STATUS_ERROR,
+                    "Gagal, karena personel telah terdaftar Jadwal Kerja"
+                );
+            }
             $auth = Auth::user();
             $message = 'Berhasil menambahkan Personel Time Work';
 
             if ($request->id != null) {
                 $message = 'Berhasil memperbarui menambahkan Personel Time Work';
-                $personel_time_work = WorkPersonel::findOrFail($request->id);
+                $personel_time_work = WorkPersonel::find($request->id);
+                if (!$personel_time_work) {
+
+                    $personel_time_work = new WorkPersonel();
+                    $personel_time_work->created_at = Carbon::now();
+                }
             } else {
                 $personel_time_work = new WorkPersonel();
                 $personel_time_work->created_at = Carbon::now();
-                $personel_time_work->id_m_user_company = $auth->id_m_user_company;
             }
+            $personel_time_work->id_m_user_company = $auth->id_m_user_company;
             $personel_time_work->id_m_personel = $request['personel_time_work']['id_m_personel'];
             $personel_time_work->id_m_work_patern = $request['personel_time_work']['id_m_work_patern'];
             $personel_time_work->m_work_personel_time = $request['personel_time_work']['m_work_personel_time'];
@@ -95,6 +108,8 @@ class PersonelTimeWorkController extends Controller
             );
         } catch (\Throwable $th) {
             DB::rollback();
+            // Log::info($th);
+            // throw $th;
             return $this->sendResponse(
                 Fungsi::STATUS_ERROR,
                 Fungsi::MES_CREATE_EDIT

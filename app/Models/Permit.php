@@ -21,6 +21,7 @@ class Permit extends Model
         0 => 'Menunggu Persetujuan',
         1 => 'Diterima',
         2 => 'Ditolak',
+        3 => 'Kadaluarsa'
     ];
 
     public function Personel()

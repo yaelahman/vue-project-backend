@@ -3,6 +3,7 @@
 namespace App\Console;
 
 use App\Models\Permit;
+use App\Models\PermitDate;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Log;
 use Laravel\Lumen\Console\Kernel as ConsoleKernel;
@@ -28,12 +29,23 @@ class Kernel extends ConsoleKernel
     {
         $schedule->call(function () {
 
-            $permit = Permit::whereDate('created_at', '<', date('Y-m-d'))->get();
+            $permit = Permit::where('permit_status', 0)->get();
             foreach ($permit as $row) {
-                $update = Permit::find($row->id_permit_application);
-                $update->permit_status = 3;
-                $update->save();
+                if ($row->permit_endclock != null) {
+                    if (date('Y-m-d', strtotime($row->permit_endclock)) <= date('Y-m-d')) {
+                        $update = Permit::find($row->id_permit_application);
+                        $update->permit_status = 3;
+                        $update->save();
+                    }
+                } else {
+                    $permit_date = PermitDate::where('id_permit_application', $row->id_permit_application)->orderBy('id_permit_date', 'desc')->first();
+                    if (date('Y-m-d', strtotime($permit_date->permit_date)) <= date('Y-m-d')) {
+                        $update = Permit::find($permit_date->id_permit_application);
+                        $update->permit_status = 3;
+                        $update->save();
+                    }
+                }
             }
-        })->daily();
+        })->everyMinute();
     }
 }
