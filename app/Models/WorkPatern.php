@@ -27,4 +27,9 @@ class WorkPatern extends Model
     {
         return $this->hasMany('App\Models\WorkSchedule', 'id_m_work_patern', 'id_m_work_patern');
     }
+
+    public function WorkPersonel()
+    {
+        return $this->hasMany('App\Models\WorkPersonel', 'id_m_work_patern', 'id_m_work_patern');
+    }
 }

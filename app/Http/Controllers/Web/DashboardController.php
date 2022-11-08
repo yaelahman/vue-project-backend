@@ -328,29 +328,34 @@ class DashboardController extends Controller
 
     public function countApproval()
     {
+        $auth = Auth::user();
         $jam = Permit::where([
             'permit_status' => 0,
             'permit_type' => 1
-        ])->whereHas('Personel', function ($query) {
+        ])->whereHas('Personel', function ($query) use ($auth) {
             $query->where('m_personel_status', 1);
+            $query->where('id_m_user_company', $auth->id_m_user_company);
         })->count();
         $hari = Permit::where([
             'permit_status' => 0,
             'permit_type' => 2
-        ])->whereHas('Personel', function ($query) {
+        ])->whereHas('Personel', function ($query) use ($auth) {
             $query->where('m_personel_status', 1);
+            $query->where('id_m_user_company', $auth->id_m_user_company);
         })->count();
         $cuti = Permit::where([
             'permit_status' => 0,
             'permit_type' => 3
-        ])->whereHas('Personel', function ($query) {
+        ])->whereHas('Personel', function ($query) use ($auth) {
             $query->where('m_personel_status', 1);
+            $query->where('id_m_user_company', $auth->id_m_user_company);
         })->count();
         $lembur = Absensi::where([
             't_absensi_status_admin' => 0,
             't_absensi_status' => 3
-        ])->whereHas('Personel', function ($query) {
+        ])->whereHas('Personel', function ($query) use ($auth) {
             $query->where('m_personel_status', 1);
+            $query->where('id_m_user_company', $auth->id_m_user_company);
         })->count();
 
         return $this->send_response([

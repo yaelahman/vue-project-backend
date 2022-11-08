@@ -94,7 +94,7 @@ class DataPersonelController extends Controller
             $personel->username = $request['data_personel']['username'];
             $personel->m_personel_gender = $request['data_personel']['m_personel_gender'];
             $personel->m_personel_email = $request['data_personel']['m_personel_email'];
-            $personel->m_personel_status = $request['data_personel']['m_personel_status'];
+            // $personel->m_personel_status = $request['data_personel']['m_personel_status'];
             $personel->id_m_departemen = $request['data_personel']['id_m_departemen'];
             $personel->total_leave = $request['data_personel']['total_leave'];
             $personel->remaining_leave = $request['data_personel']['total_leave'];
@@ -189,6 +189,22 @@ class DataPersonelController extends Controller
         $personel = Personel::findOrFail($id);
         $personel->device_id = null;
         $personel->is_logged_in = null;
+        $personel->save();
+
+        return $this->sendResponse(
+            Fungsi::STATUS_SUCCESS,
+            $message
+                . ' Nama ' . $personel->m_personel_names
+                . ' Person ID ' . $personel->m_personel_personID
+        );
+    }
+
+    public function changeStatus($id)
+    {
+        $message = 'Berhasil ubah status Data Personel';
+
+        $personel = Personel::findOrFail($id);
+        $personel->m_personel_status = $personel->m_personel_status == 1 ? 2 : 1;
         $personel->save();
 
         return $this->sendResponse(

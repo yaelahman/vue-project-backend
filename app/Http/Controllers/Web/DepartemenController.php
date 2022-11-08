@@ -17,7 +17,7 @@ class DepartemenController extends Controller
 {
     public function index()
     {
-        $departemen = Departemen::get();
+        $departemen = Departemen::withCount('Personels')->get();
 
         return $this->sendResponse(
             Fungsi::STATUS_SUCCESS,

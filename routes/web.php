@@ -101,6 +101,7 @@ $router->group([
     $router->get('/generate-token-data-personel/{id}', 'Web\DataPersonelController@generateToken');
     $router->get('/generate-password-data-personel/{id}', 'Web\DataPersonelController@generatePassword');
     $router->get('/reset-deviceid-data-personel/{id}', 'Web\DataPersonelController@resetDeviceId');
+    $router->get('/change-status-data-personel/{id}', 'Web\DataPersonelController@changeStatus');
     $router->delete('/delete-data-personel/{id}', 'Web\DataPersonelController@delete');
 
     // Attendance Spot

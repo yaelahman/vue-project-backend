@@ -38,6 +38,11 @@ class WorkPatternController extends Controller
     {
         $auth = Auth::user();
         $work_pattern = WorkPatern::orderBy('id_m_work_patern', 'desc')
+            ->withCount(['WorkPersonel' => function ($query) {
+                $query->whereHas('getPersonel', function ($query) {
+                    $query->where('m_personel_status', 1);
+                });
+            }])
             ->withCount(['WPDKerja' => function (Builder $query) {
                 $query->where('m_work_schedule_type', '=', 1);
             }])
