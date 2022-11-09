@@ -297,7 +297,7 @@ class DailyAttendanceController extends Controller
                 // $detail->get()->pluck('t_absensi_Dates')
             );
         } else if (strtolower($request->type) == 'cuti') {
-            $detail = \App\Models\PermitDate::select('permit_date')
+            $detail = \App\Models\PermitDate::selectRaw('permit_date as "t_absensi_Dates"')
                 ->whereDate('permit_date', '>=', $request->startDate)
                 ->whereDate('permit_date', '<=', $request->endDate)
                 ->whereHas('Permit', function ($query) use ($request) {
@@ -307,10 +307,10 @@ class DailyAttendanceController extends Controller
                 });
         }
 
-        $filter_date = [];
-        foreach ($detail->get() as $row) {
-            $filter_date[] = $row->permit_date != null ? $row->permit_date : $row->t_absensi_Dates;
-        }
+        $filter_date = $detail->get();
+        // foreach ($detail->get() as $row) {
+        //     $filter_date[] = $row->permit_date != null ? $row->permit_date : $row->t_absensi_Dates;
+        // }
         return $this->sendResponse(
             Fungsi::STATUS_SUCCESS,
             Fungsi::MES_SUCCESS,
