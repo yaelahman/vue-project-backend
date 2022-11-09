@@ -187,8 +187,9 @@ class DailyAttendanceController extends Controller
                     $filter_date[] = $date->format('Y-m-d');
                 }
 
-                $absensis = Absensi::whereBetween('t_absensi_Dates', [$request->startDate, $request->endDate])
-                    ->whereNotNull('t_absensi_endClock')
+                $absensis = Absensi::whereDate('t_absensi_Dates', '>=', $request->startDate)
+                    ->whereDate('t_absensi_Dates', '<=', $request->endDate)
+                    // ->whereNotNull('t_absensi_endClock')
                     ->where('id_m_personel', $personel->id_m_personel)
                     ->whereIn('t_absensi_status', [1, 2])
                     ->get();
@@ -219,7 +220,11 @@ class DailyAttendanceController extends Controller
 
                     ++$kehadiran;
                     $datang = strtotime($absensi->t_absensi_startClock);
-                    $pulang = strtotime($absensi->t_absensi_endClock);
+                    if ($absensi->t_absensi_endClock == null) {
+                        $pulang = strtotime(date('Y-m-d H:i:s'));
+                    } else {
+                        $pulang = strtotime($absensi->t_absensi_endClock);
+                    }
                     $jam_kerja = floor(($pulang - $datang) / 3600);
                     $total_jam = $total_jam + $jam_kerja;
                     if ($absensi->t_absensi_isLate == 2) {
@@ -251,8 +256,9 @@ class DailyAttendanceController extends Controller
     public function attendanceSummaryDetail(Request $request)
     {
         $detail = Absensi::select('*')
-            ->whereBetween('t_absensi_Dates', [$request->startDate, $request->endDate])
-            ->whereNotNull('t_absensi_endClock')
+            ->whereDate('t_absensi_Dates', '>=', $request->startDate)
+            ->whereDate('t_absensi_Dates', '<=', $request->endDate)
+            // ->whereNotNull('t_absensi_endClock')
             ->where('id_m_personel', $request->id_m_personel)
             ->whereIn('t_absensi_status', [1, 2]);
 
@@ -290,11 +296,25 @@ class DailyAttendanceController extends Controller
                 // count($period->toArray())
                 // $detail->get()->pluck('t_absensi_Dates')
             );
+        } else if (strtolower($request->type) == 'cuti') {
+            $detail = \App\Models\PermitDate::select('permit_date')
+                ->whereDate('permit_date', '>=', $request->startDate)
+                ->whereDate('permit_date', '<=', $request->endDate)
+                ->whereHas('Permit', function ($query) use ($request) {
+                    $query->where('permit_status', 1);
+                    $query->where('id_m_personel', $request->id_m_personel);
+                    $query->where('permit_type', 3);
+                });
+        }
+
+        $filter_date = [];
+        foreach ($detail->get() as $row) {
+            $filter_date[] = $row->permit_date != null ? $row->permit_date : $row->t_absensi_Dates;
         }
         return $this->sendResponse(
             Fungsi::STATUS_SUCCESS,
             Fungsi::MES_SUCCESS,
-            $detail->get()
+            $filter_date
         );
     }
 

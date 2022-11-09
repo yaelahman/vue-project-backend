@@ -140,17 +140,11 @@ class PermitController extends Controller
 
     public function approve(Request $request)
     {
-        if (!isset($request['catatan'])) {
-            return $this->sendResponse(
-                Fungsi::STATUS_ERROR,
-                'Harap inputkan catatan'
-            );
-        }
         DB::beginTransaction();
         try {
             $auth = Auth::user();
             $id = $request['id'];
-            $type = $request['type'];
+            $type = $request['type'] == 1 ? 'Menyetujui' : 'Menolak';
             $message = "Berhasil $type izin";
 
             $permit = Permit::findOrFail($id);
