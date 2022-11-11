@@ -25,6 +25,15 @@ class DataPersonelController extends Controller
         if (isset($request->work_personel) && $request->work_personel) {
             $personels->has('WorkPersonel');
         }
+        if (isset($request->departemen) && $request->departemen) {
+            $personels->where('id_m_departemen', $request->departemen);
+        }
+        if (isset($request->work_patern) && $request->work_patern) {
+            $personels->whereHas('WorkPersonel', function ($query) use ($request) {
+                $query->where('id_m_work_patern', $request->work_patern);
+            });
+        }
+
 
         return $this->sendResponse(
             Fungsi::STATUS_SUCCESS,

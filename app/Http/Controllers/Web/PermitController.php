@@ -33,8 +33,15 @@ class PermitController extends Controller
         })->orderBy('id_permit_application', 'desc');
 
         if ($request->startDate != null && $request->endDate != null) {
-            $permits->whereDate('created_at', '>=', $request->startDate);
-            $permits->whereDate('created_at', '<=', $request->endDate);
+            if ($type == 1) {
+                $permits->whereDate('permit_startclock', '>=', $request->startDate);
+                $permits->whereDate('permit_startclock', '<=', $request->endDate);
+            } else {
+                $permits->whereHas('PermitDate', function ($query) use ($request) {
+                    $query->whereDate('permit_startclock', '>=', $request->startDate);
+                    $query->whereDate('permit_startclock', '<=', $request->endDate);
+                });
+            }
         }
 
         if ($request->status != null) {

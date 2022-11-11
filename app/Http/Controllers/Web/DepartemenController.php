@@ -15,14 +15,14 @@ use Illuminate\Support\Facades\Validator;
 
 class DepartemenController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $departemen = Departemen::withCount('Personels')->get();
+        $departemen = Departemen::withCount('Personels');
 
         return $this->sendResponse(
             Fungsi::STATUS_SUCCESS,
             Fungsi::MES_SUCCESS,
-            $departemen
+            $departemen->get()
         );
     }
 
