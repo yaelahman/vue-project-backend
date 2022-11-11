@@ -311,7 +311,9 @@ class DashboardController extends Controller
     {
         $auth = Auth::user();
 
-        $cuti = Permit::whereHas('Personel', function ($query) use ($auth) {
+        $cuti = Permit::whereHas('PermitDate', function ($query) {
+            $query->whereDate('permit_date', date('Y-m-d'));
+        })->whereHas('Personel', function ($query) use ($auth) {
             $query->where('id_m_user_company', $auth->id_m_user_company);
         })
             ->whereIn('permit_type', [3])

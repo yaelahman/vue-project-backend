@@ -189,6 +189,7 @@ class DataPersonelController extends Controller
         $personel = Personel::findOrFail($id);
         $personel->device_id = null;
         $personel->is_logged_in = null;
+        $personel->time_borrow_account = null;
         $personel->save();
 
         return $this->sendResponse(
