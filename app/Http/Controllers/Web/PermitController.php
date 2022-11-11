@@ -144,7 +144,7 @@ class PermitController extends Controller
         try {
             $auth = Auth::user();
             $id = $request['id'];
-            $type = $request['type'] == 1 ? 'Menyetujui' : 'Menolak';
+            $type = $request['type'] == "setuju" ? 'Menyetujui' : 'Menolak';
             $message = "Berhasil $type izin";
 
             $permit = Permit::findOrFail($id);

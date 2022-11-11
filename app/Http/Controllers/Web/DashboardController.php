@@ -306,10 +306,11 @@ class DashboardController extends Controller
     {
         $auth = Auth::user();
 
-        $cuti = Permit::whereDate('permit_startclock', date('Y-m-d'))
-            ->whereHas('Personel', function ($query) use ($auth) {
-                $query->where('id_m_user_company', $auth->id_m_user_company);
-            })
+        $cuti = Permit::whereHas('PermitDate', function ($query) {
+            $query->whereDate('permit_date', date('Y-m-d'));
+        })->whereHas('Personel', function ($query) use ($auth) {
+            $query->where('id_m_user_company', $auth->id_m_user_company);
+        })
             ->whereIn('permit_type', [3])
             ->where('permit_status', 1)
             ->get()->pluck('id_m_personel');
