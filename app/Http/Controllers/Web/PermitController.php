@@ -38,8 +38,8 @@ class PermitController extends Controller
                 $permits->whereDate('permit_startclock', '<=', $request->endDate);
             } else {
                 $permits->whereHas('PermitDate', function ($query) use ($request) {
-                    $query->whereDate('permit_startclock', '>=', $request->startDate);
-                    $query->whereDate('permit_startclock', '<=', $request->endDate);
+                    $query->whereDate('permit_date', '>=', $request->startDate);
+                    $query->whereDate('permit_date', '<=', $request->endDate);
                 });
             }
         }
@@ -79,9 +79,16 @@ class PermitController extends Controller
                 $query->where('m_personel_status', 1);
             })->orderBy('id_permit_application', 'desc');
 
-            if (isset($request->start_date) && isset($request->end_date)) {
-                $permits->whereDate('created_at', '>=', $request->start_date);
-                $permits->whereDate('created_at', '<=', $request->end_date);
+            if ($request->start_date != null && $request->end_date != null) {
+                if ($type == 1) {
+                    $permits->whereDate('permit_startclock', '>=', $request->start_date);
+                    $permits->whereDate('permit_startclock', '<=', $request->end_date);
+                } else {
+                    $permits->whereHas('PermitDate', function ($query) use ($request) {
+                        $query->whereDate('permit_date', '>=', $request->start_date);
+                        $query->whereDate('permit_date', '<=', $request->end_date);
+                    });
+                }
             }
 
             if (isset($request->status) && $request->status != null) {
