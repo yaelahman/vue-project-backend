@@ -82,6 +82,19 @@ class DailyAttendanceController extends Controller
             $auth = Auth::user();
             $message = 'Berhasil menambahkan Absensi';
 
+            $check = Absensi::whereDate('t_absensi_Dates', $request['absensi']['startDate'])->where('id_m_personel', $request['absensi']['personel'])->first();
+
+            if ($check) {
+
+                // return $request['absensi']['endClock'] != null ? $request['absensi']['endDate'] . ' ' . $request['absensi']['endClock'] : null;
+
+                $message = 'Tanggal ' . $request['absensi']['startDate'] . ' telah melakukan absen';
+                return $this->sendResponse(
+                    Fungsi::STATUS_ERROR,
+                    $message,
+                );
+            }
+
             if ($request->id != null) {
                 $message = 'Berhasil memperbarui Absensi';
                 $absensi = Absensi::findOrFail($request->id);
@@ -110,7 +123,7 @@ class DailyAttendanceController extends Controller
             );
         } catch (\Exception $th) {
             Log::info($th);
-            throw $th;
+            // throw $th;
             DB::rollback();
             return $this->sendResponse(
                 Fungsi::STATUS_ERROR,
