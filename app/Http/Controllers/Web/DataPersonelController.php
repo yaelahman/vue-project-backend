@@ -28,6 +28,9 @@ class DataPersonelController extends Controller
         if (isset($request->departemen) && $request->departemen) {
             $personels->where('id_m_departemen', $request->departemen);
         }
+        if (!isset($request->isIndex)) {
+            $personels->where('m_personel_status', 1);
+        }
         if (isset($request->work_patern) && $request->work_patern) {
             $personels->whereHas('WorkPersonel', function ($query) use ($request) {
                 $query->where('id_m_work_patern', $request->work_patern);
@@ -40,6 +43,72 @@ class DataPersonelController extends Controller
             Fungsi::MES_SUCCESS,
             $personels->get()->load('Departemen')
         );
+    }
+
+    public function datatable_get(Request $request)
+    {
+        $auth = Auth::user();
+        $draw = request('draw');
+        $start = request('start');
+        $length = request('length');
+        $search = request('search');
+        $columns = request('columns');
+        $order = request('order');
+
+        $personels = Personel::query()->orderBy('id_m_personel', 'desc')->where('id_m_user_company', $auth->id_m_user_company);
+
+        if (isset($request->work_personel) && $request->work_personel) {
+            $personels->has('WorkPersonel');
+        }
+        if (isset($request->departemen) && $request->departemen) {
+            $personels->where('id_m_departemen', $request->departemen);
+        }
+        if (isset($request->work_patern) && $request->work_patern) {
+            $personels->whereHas('WorkPersonel', function ($query) use ($request) {
+                $query->where('id_m_work_patern', $request->work_patern);
+            });
+        }
+
+        $recordsTotal = $personels->count('id_m_personel');
+
+        $recordsFiltered = 0;
+        if ($search) {
+            $search = $search['value'];
+            $firstColumn = true;
+            foreach ($columns as $column) {
+                if ($column['searchable'] === 'true') {
+                    if ($firstColumn) {
+                        $personels->where($column['data'], 'LIKE', "%{$search}%");
+                        $firstColumn = false;
+                    } else {
+                        $personels->orWhere($column['data'], 'LIKE', "%{$search}%");
+                    }
+                }
+            }
+            $recordsFiltered = $personels->count('id_m_personel');
+        } else {
+            $recordsFiltered = $recordsTotal;
+        }
+
+        // if ($columns[$order['column']]['orderable'] == 'true') {
+        //     $personels->orderBy($columns[$order['column']]['data'], $order['dir']);
+        // }
+
+        $personels->skip($start);
+        $personels->limit($length);
+        $personels = $personels->get();
+
+        foreach ($personels as $index => $row) {
+            $personels[$index]['nomer'] = $index + 1;
+            $personels[$index]['m_personel_status'] = '<button style="cursor: pointer;" @click="changeStatus(personel)" class="' . $row->m_personel_status == 1 ? 'btn btn-success btn-sm' : 'btn btn-danger btn-sm' . '">' . $row->m_personel_status == 1 ? 'On' : 'Off' . '</button>';
+            $personels[$index]['button'] = "Belum Ada Aksi";
+        }
+        return response()->json([
+            'draw' => $draw,
+            'recordsTotal' => $recordsTotal,
+            'recordsFiltered' => $recordsFiltered,
+            'data' => $personels
+        ], 200);
     }
 
     public function create(Request $request)

@@ -11,6 +11,7 @@ use App\Models\AbsensiPhoto;
 use App\Models\DeviceSettings;
 use App\Models\Permit;
 use App\Models\Personel;
+use App\Models\AttendanceSpot;
 use App\Models\WorkPersonel;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
@@ -112,6 +113,12 @@ class DailyAttendanceController extends Controller
             $absensi->t_absensi_status = isset($request['absensi']['status']) && $request['absensi']['status'] ? 2 : 1;
             $absensi->t_absensi_catatan_telat_masuk = $request['absensi']['catatan_masuk'] != null ? $request['absensi']['catatan_masuk'] : null;
             $absensi->t_absensi_catatan = $request['absensi']['catatan_pulang'] != null ? $request['absensi']['catatan_pulang'] : null;
+            if ($request['absensi']['attendance_spot'] != null) {
+                $spot = AttendanceSpot::find($request['absensi']['attendance_spot']);
+                if ($spot) {
+                    $absensi->t_absensi_latLong = $spot->m_attendance_spots_latitude . "," . $spot->m_attendance_spots_longitude;
+                }
+            }
             $absensi->updated_at = Carbon::now();
             $absensi->save();
 

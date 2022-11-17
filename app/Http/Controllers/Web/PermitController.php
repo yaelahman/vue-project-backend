@@ -160,7 +160,7 @@ class PermitController extends Controller
             $auth = Auth::user();
             $id = $request['id'];
             $type = $request['type'];
-            $message = "Berhasil " . $request['type'] == "setuju" ? 'Menyetujui' : 'Menolak' . " izin";
+            $message = "Berhasil " . ($type == "setuju" ? 'Menyetujui' : 'Menolak') . " izin";
 
             $permit = Permit::findOrFail($id);
             $permit->permit_status = $type == 'tolak' ? 2 : 1;

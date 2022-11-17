@@ -148,6 +148,7 @@ class WorkPatternController extends Controller
                 $message
             );
         } catch (\Exception $e) {
+            return $e;
             return $this->sendResponse(
                 Fungsi::STATUS_ERROR,
                 "Gagal Menghapus Jadwal Kerja"
