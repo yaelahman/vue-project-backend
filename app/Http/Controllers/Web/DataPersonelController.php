@@ -20,7 +20,7 @@ class DataPersonelController extends Controller
     {
         $auth = Auth::user();
 
-        $personels = Personel::orderBy('id_m_personel', 'desc')->where('id_m_user_company', $auth->id_m_user_company);
+        $personels = Personel::with('WorkPersonel')->orderBy('id_m_personel', 'desc')->where('id_m_user_company', $auth->id_m_user_company)->with('Departemen');
 
         if (isset($request->work_personel) && $request->work_personel) {
             $personels->has('WorkPersonel');
@@ -37,11 +37,21 @@ class DataPersonelController extends Controller
             });
         }
 
+        if (isset($request->search) && $request->search != null) {
+            $personels->where(function ($query) use ($request) {
+                $query->where('username', 'LIKE', "%$request->search%");
+                // $query->orWhere('m_personel_personID', 'ILIKE', "%$request->search%");
+                // $query->orWhere('username', 'ILIKE', "%$request->search%");
+                // $query->orWhere('m_personel_email', 'ILIKE', "%$request->search%");
+                // $query->orWhere('device_id', 'ILIKE', "%$request->search%");
+            });
+        }
+
 
         return $this->sendResponse(
             Fungsi::STATUS_SUCCESS,
             Fungsi::MES_SUCCESS,
-            $personels->get()->load('Departemen')
+            $personels->paginate($request->show ?? 10)
         );
     }
 
@@ -175,7 +185,7 @@ class DataPersonelController extends Controller
             // $personel->m_personel_status = $request['data_personel']['m_personel_status'];
             $personel->id_m_departemen = $request['data_personel']['id_m_departemen'];
             $personel->total_leave = $request['data_personel']['total_leave'];
-            $personel->remaining_leave = $request['data_personel']['total_leave'];
+            $personel->remaining_leave = $request['data_personel']['total_leave'] - $personel->remaining_leave;
             // $personel->remaining_leave = $personel->remaining_leave != null ? $personel->remaining_leave : $request['data_personel']['total_leave'];
             $personel->effective_date_leave = $request['data_personel']['effective_date_leave'];
             $personel->updated_at = Carbon::now();

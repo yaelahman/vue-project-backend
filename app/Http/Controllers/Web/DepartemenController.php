@@ -9,6 +9,7 @@ use App\Models\Personel;
 use App\Models\UserCompany;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -17,17 +18,28 @@ class DepartemenController extends Controller
 {
     public function index(Request $request)
     {
-        $departemen = Departemen::withCount('Personels');
+        $auth = Auth::user();
+        $departemen = Departemen::withCount([
+            'Personels' => function ($query) use ($auth) {
+                $query->where('m_personel_status', 1);
+                $query->where('id_m_user_company', $auth->id_m_user_company);
+            }
+        ])->where('id_m_user_company', $auth->id_m_user_company);
+
+        if (isset($request->search) && $request->search != null) {
+            $departemen->where('m_departemen_name', 'ILIKE', "%$request->search%");
+        }
 
         return $this->sendResponse(
             Fungsi::STATUS_SUCCESS,
             Fungsi::MES_SUCCESS,
-            $departemen->get()
+            $departemen->paginate($request->show ?? 10)
         );
     }
 
     public function create(Request $request)
     {
+        $auth = Auth::user();
         DB::beginTransaction();
         try {
             $message = 'Berhasil menambahkan Departemen';
@@ -41,6 +53,7 @@ class DepartemenController extends Controller
                 $departemen->created_at = Carbon::now();
             }
             $departemen->m_departemen_name = $request['departemen']['m_departemen_name'];
+            $departemen->id_m_user_company = $auth->id_m_user_company;
             $departemen->updated_at = Carbon::now();
             $departemen->save();
 

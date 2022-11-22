@@ -22,7 +22,7 @@ class DashboardController extends Controller
     public function checkAbsen(Request $request)
     {
         $auth = Auth::user();
-        $personel = Personel::where('id_m_user_company', $auth->id_m_user_company);
+        $personel = Personel::where('id_m_user_company', $auth->id_m_user_company)->where('m_personel_status', 1);
 
         $absen = 0;
         $notAbsen = 0;
@@ -160,7 +160,7 @@ class DashboardController extends Controller
         return $this->send_response($data);
     }
 
-    public function checkPersonelBelumAbsen()
+    public function checkPersonelBelumAbsen(Request $request)
     {
         $auth = Auth::user();
 
@@ -175,13 +175,22 @@ class DashboardController extends Controller
             ->with('Departemen')
             ->with(['WorkPersonel' => function ($query) {
                 $query->with('getWorkPattern');
-            }])
-            ->get();
+            }]);
 
-        return $this->send_response($personel);
+        if (isset($request->search) && $request->search != null) {
+            $personel->where(function ($query) use ($request) {
+                $query->where('m_personel_names', 'ILIKE', "%$request->search%");
+                $query->orWhere('m_personel_personID', 'ILIKE', "%$request->search%");
+                $query->orWhereHas('Departemen', function ($query) use ($request) {
+                    $query->where('m_departemen_name', 'ILIKE', "%$request->search%");
+                });
+            });
+        }
+
+        return $this->send_response($personel->paginate($request->show ?? 10));
     }
 
-    public function checkPersonelSudahAbsen()
+    public function checkPersonelSudahAbsen(Request $request)
     {
         $auth = Auth::user();
 
@@ -200,13 +209,24 @@ class DashboardController extends Controller
             }])
             ->whereDate('t_absensi.t_absensi_Dates', date('Y-m-d'))
             ->whereIn('t_absensi.t_absensi_status', [1, 2])
-            ->orderBy('t_absensi.t_absensi_startClock', 'ASC')
-            ->get();
+            ->orderBy('t_absensi.t_absensi_startClock', 'ASC');
 
-        return $this->send_response($personel);
+
+
+        if (isset($request->search) && $request->search != null) {
+            $personel->where(function ($query) use ($request) {
+                $query->where('m_personel_names', 'ILIKE', "%$request->search%");
+                $query->orWhere('m_personel_personID', 'ILIKE', "%$request->search%");
+                $query->orWhereHas('Departemen', function ($query) use ($request) {
+                    $query->where('m_departemen_name', 'ILIKE', "%$request->search%");
+                });
+            });
+        }
+
+        return $this->send_response($personel->paginate($request->show ?? 10));
     }
 
-    public function checkPersonelWFH()
+    public function checkPersonelWFH(Request $request)
     {
         $auth = Auth::user();
 
@@ -223,13 +243,23 @@ class DashboardController extends Controller
             }])
             ->with(['WorkPersonel' => function ($query) {
                 $query->with('getWorkPattern');
-            }])
-            ->get();
+            }]);
 
-        return $this->send_response($personel);
+
+        if (isset($request->search) && $request->search != null) {
+            $personel->where(function ($query) use ($request) {
+                $query->where('m_personel_names', 'ILIKE', "%$request->search%");
+                $query->orWhere('m_personel_personID', 'ILIKE', "%$request->search%");
+                $query->orWhereHas('Departemen', function ($query) use ($request) {
+                    $query->where('m_departemen_name', 'ILIKE', "%$request->search%");
+                });
+            });
+        }
+
+        return $this->send_response($personel->paginate($request->show ?? 10));
     }
 
-    public function checkPersonelKunjungan()
+    public function checkPersonelKunjungan(Request $request)
     {
         $auth = Auth::user();
 
@@ -240,20 +270,24 @@ class DashboardController extends Controller
                 $query->where('m_personel_status', 1);
             })
             ->whereIn('t_absensi_status', [4])
-            ->where('id_m_user_company', $auth->id_m_user_company)
-            ->get();
+            ->where('id_m_user_company', $auth->id_m_user_company);
 
-        // $personel = Personel::whereIn('id_m_personel', $absensi)
-        //     ->where('id_m_user_company', $auth->id_m_user_company)
-        //     ->with(['Departemen', 'Absensi' => function ($query) {
-        //         $query->whereIn('t_absensi_status', [4]);
-        //     }])
-        //     ->get();
+        if (isset($request->search) && $request->search != null) {
+            $absensi->where(function ($query) use ($request) {
+                $query->whereHas('Personel', function ($query) use ($request) {
+                    $query->where('m_personel_names', 'ILIKE', "%$request->search%");
+                    $query->orWhere('m_personel_personID', 'ILIKE', "%$request->search%");
+                    $query->orWhereHas('Departemen', function ($query) use ($request) {
+                        $query->where('m_departemen_name', 'ILIKE', "%$request->search%");
+                    });
+                });
+            });
+        }
 
-        return $this->send_response($absensi);
+        return $this->send_response($absensi->paginate($request->show ?? 10));
     }
 
-    public function checkIzin()
+    public function checkIzin(Request $request)
     {
         $auth = Auth::user();
 
@@ -284,8 +318,17 @@ class DashboardController extends Controller
             }])
             ->whereHas('Permit', function ($query) {
                 $query->whereDate('permit_startclock', date('Y-m-d'));
-            })
-            ->get();
+            });
+
+        if (isset($request->search) && $request->search != null) {
+            $personel->where(function ($query) use ($request) {
+                $query->where('m_personel_names', 'ILIKE', "%$request->search%");
+                $query->orWhere('m_personel_personID', 'ILIKE', "%$request->search%");
+                $query->orWhereHas('Departemen', function ($query) use ($request) {
+                    $query->where('m_departemen_name', 'ILIKE', "%$request->search%");
+                });
+            });
+        }
 
         $personel2 = Personel::whereIn('id_m_personel', $hari)
             ->where('m_personel_status', 1)
@@ -298,16 +341,25 @@ class DashboardController extends Controller
                 $query->whereHas('PermitDate', function ($query) {
                     $query->whereDate('permit_date', date('Y-m-d'));
                 });
-            })
-            ->get();
+            });
+
+        if (isset($request->search) && $request->search != null) {
+            $personel2->where(function ($query) use ($request) {
+                $query->where('m_personel_names', 'ILIKE', "%$request->search%");
+                $query->orWhere('m_personel_personID', 'ILIKE', "%$request->search%");
+                $query->orWhereHas('Departemen', function ($query) use ($request) {
+                    $query->where('m_departemen_name', 'ILIKE', "%$request->search%");
+                });
+            });
+        }
 
         return $this->send_response([
-            'jam' => $personel,
-            'hari' => $personel2
+            'jam' => $personel->paginate($request->show ?? 10),
+            'hari' => $personel2->paginate($request->show ?? 10),
         ]);
     }
 
-    public function checkCuti()
+    public function checkCuti(Request $request)
     {
         $auth = Auth::user();
 
@@ -332,10 +384,18 @@ class DashboardController extends Controller
                 $query->whereHas('PermitDate', function ($query) {
                     $query->whereDate('permit_date', date('Y-m-d'));
                 });
-            })
-            ->get();
+            });
+        if (isset($request->search) && $request->search != null) {
+            $personel->where(function ($query) use ($request) {
+                $query->where('m_personel_names', 'ILIKE', "%$request->search%");
+                $query->orWhere('m_personel_personID', 'ILIKE', "%$request->search%");
+                $query->orWhereHas('Departemen', function ($query) use ($request) {
+                    $query->where('m_departemen_name', 'ILIKE', "%$request->search%");
+                });
+            });
+        }
 
-        return $this->send_response($personel);
+        return $this->send_response($personel->paginate($request->show ?? 10));
     }
 
     public function countApproval()

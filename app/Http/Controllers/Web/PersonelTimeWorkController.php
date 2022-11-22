@@ -30,10 +30,26 @@ class PersonelTimeWorkController extends Controller
             $personel_time_works->where('id_m_work_patern', $request->id_work_pattern);
         }
 
+
+        if (isset($request->search) && $request->search != null) {
+            $personel_time_works->where(function ($query) use ($request) {
+                $query->whereHas('getPersonel', function ($query) use ($request) {
+                    $query->where('m_personel_names', 'ILIKE', "%$request->search%");
+                    $query->orWhere('m_personel_personID', 'ILIKE', "%$request->search%");
+                    $query->orWhereHas('Departemen', function ($query) use ($request) {
+                        $query->where('m_departemen_name', 'ILIKE', "%$request->search%");
+                    });
+                });
+                $query->orWhereHas('getWorkPattern', function ($query) use ($request) {
+                    $query->where('m_work_patern_name', 'ILIKE', "%$request->search%");
+                });
+            });
+        }
+
         return $this->sendResponse(
             Fungsi::STATUS_SUCCESS,
             Fungsi::MES_SUCCESS,
-            $personel_time_works->get()
+            $personel_time_works->paginate($request->show ?? 10)
         );
     }
 
@@ -75,12 +91,7 @@ class PersonelTimeWorkController extends Controller
         try {
 
             $check = WorkPersonel::where('id_m_personel', $request['personel_time_work']['id_m_personel'])->first();
-            if ($check) {
-                return $this->sendResponse(
-                    Fungsi::STATUS_ERROR,
-                    "Gagal, karena personel telah terdaftar Jadwal Kerja"
-                );
-            }
+
             $auth = Auth::user();
             $message = 'Berhasil menambahkan Personel Time Work';
 
@@ -95,6 +106,12 @@ class PersonelTimeWorkController extends Controller
             } else {
                 $personel_time_work = new WorkPersonel();
                 $personel_time_work->created_at = Carbon::now();
+                if ($check) {
+                    return $this->sendResponse(
+                        Fungsi::STATUS_ERROR,
+                        "Gagal, karena personel telah terdaftar Jadwal Kerja"
+                    );
+                }
             }
             $personel_time_work->id_m_user_company = $auth->id_m_user_company;
             $personel_time_work->id_m_personel = $request['personel_time_work']['id_m_personel'];

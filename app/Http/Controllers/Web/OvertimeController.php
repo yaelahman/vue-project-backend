@@ -47,7 +47,14 @@ class OvertimeController extends Controller
             // $absensi->where('t_absensi_Dates', 'ILIKE', $t_absensi_Dates);
         }
 
-        $absensi = $absensi->get();
+        if (isset($request->search) && $request->search != null) {
+            $absensi->where(function ($query) use ($request) {
+                $query->whereHas('Personel', function ($query) use ($request) {
+                    $query->where('m_personel_names', 'ILIKE', "%$request->search%");
+                });
+            });
+        }
+        $absensi = $absensi->paginate($request->show ?? 10);
 
         foreach ($absensi as $val) {
             $startDate = \Carbon\Carbon::parse($val->t_absensi_startClock);
@@ -66,7 +73,7 @@ class OvertimeController extends Controller
         return $this->sendResponse(
             Fungsi::STATUS_SUCCESS,
             Fungsi::MES_SUCCESS,
-            $absensi->load(['Personel', 'PhotoAbsensi'])
+            $absensi
         );
     }
 

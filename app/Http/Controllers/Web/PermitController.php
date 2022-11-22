@@ -45,6 +45,17 @@ class PermitController extends Controller
             }
         }
 
+        if (isset($request->search) && $request->search != null) {
+            $permits->where(function ($query) use ($request) {
+                $query->whereHas('Personel', function ($query) use ($request) {
+                    $query->where('m_personel_names', 'ILIKE', "%$request->search%");
+                    $query->orWhereHas('Departemen', function ($query) use ($request) {
+                        $query->where('m_departemen_name', 'ILIKE', "%$request->search%");
+                    });
+                });
+            });
+        }
+
         if ($request->status != null) {
             $permits->where('permit_status', $request->status);
         } else {
@@ -56,7 +67,7 @@ class PermitController extends Controller
         return $this->sendResponse(
             Fungsi::STATUS_SUCCESS,
             Fungsi::MES_SUCCESS,
-            $permits->get()
+            $permits->paginate($request->show ?? 10)
         );
     }
 
@@ -194,6 +205,15 @@ class PermitController extends Controller
                 $personel->remaining_leave = $personel->total_leave - $checkCuti;
             }
             $personel->save();
+
+
+            if ($personel->remaining_leave < 0 && $permit->permit_type == 3 && $type != 'tolak') {
+                DB::rollback();
+                return $this->sendResponse(
+                    Fungsi::STATUS_ERROR,
+                    "Jatah Cuti $personel->m_personel_names Melebihi Batas"
+                );
+            }
             DB::commit();
 
             return $this->sendResponse(
@@ -215,6 +235,7 @@ class PermitController extends Controller
     {
         // return $id;
         $message = 'Berhasil menghapus Data Izin';
+        // return [$type, $id];
 
         $permit = Permit::where([
             'id_permit_application' => $id,
