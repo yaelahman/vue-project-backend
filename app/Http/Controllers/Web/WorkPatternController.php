@@ -34,7 +34,7 @@ class WorkPatternController extends Controller
      *
      * @return \Illuminate\Contracts\Support\Renderable
      */
-    public function index()
+    public function index(Request $request)
     {
         $auth = Auth::user();
         $work_pattern = WorkPatern::orderBy('id_m_work_patern', 'desc')
@@ -48,12 +48,19 @@ class WorkPatternController extends Controller
             }])
             ->withCount(['WPDLibur' => function (Builder $query) {
                 $query->where('m_work_schedule_type', '=', 2);
-            }])->where('id_m_user_company', $auth->id_m_user_company)->get();
+            }])->where('id_m_user_company', $auth->id_m_user_company);
+
+
+        if (isset($request->search) && $request->search != null) {
+            $work_pattern->where(function ($query) use ($request) {
+                $query->where('m_work_patern_name', 'ILIKE', "%$request->search%");
+            });
+        }
 
         return $this->sendResponse(
             Fungsi::STATUS_SUCCESS,
             Fungsi::MES_SUCCESS,
-            $work_pattern
+            $work_pattern->paginate($request->show ?? 10)
         );
     }
 
@@ -148,6 +155,7 @@ class WorkPatternController extends Controller
                 $message
             );
         } catch (\Exception $e) {
+            return $e;
             return $this->sendResponse(
                 Fungsi::STATUS_ERROR,
                 "Gagal Menghapus Jadwal Kerja"

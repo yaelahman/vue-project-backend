@@ -7,6 +7,7 @@ use App\Fungsi;
 use App\Http\Controllers\Controller;
 use App\Models\Permit;
 use App\Models\PermitApproval;
+use App\Models\PermitDate;
 use App\Models\Personel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -44,6 +45,17 @@ class PermitController extends Controller
             }
         }
 
+        if (isset($request->search) && $request->search != null) {
+            $permits->where(function ($query) use ($request) {
+                $query->whereHas('Personel', function ($query) use ($request) {
+                    $query->where('m_personel_names', 'ILIKE', "%$request->search%");
+                    $query->orWhereHas('Departemen', function ($query) use ($request) {
+                        $query->where('m_departemen_name', 'ILIKE', "%$request->search%");
+                    });
+                });
+            });
+        }
+
         if ($request->status != null) {
             $permits->where('permit_status', $request->status);
         } else {
@@ -55,7 +67,7 @@ class PermitController extends Controller
         return $this->sendResponse(
             Fungsi::STATUS_SUCCESS,
             Fungsi::MES_SUCCESS,
-            $permits->get()
+            $permits->paginate($request->show ?? 10)
         );
     }
 
@@ -158,8 +170,8 @@ class PermitController extends Controller
         try {
             $auth = Auth::user();
             $id = $request['id'];
-            $type = $request['type'] == "setuju" ? 'Menyetujui' : 'Menolak';
-            $message = "Berhasil $type izin";
+            $type = $request['type'];
+            $message = "Berhasil " . ($type == "setuju" ? 'Menyetujui' : 'Menolak') . " izin";
 
             $permit = Permit::findOrFail($id);
             $permit->permit_status = $type == 'tolak' ? 2 : 1;
@@ -175,19 +187,33 @@ class PermitController extends Controller
                     "Jatah Cuti $personel->m_personel_names Telah Habis"
                 );
             }
-            if ($permit->permit_type == 3) {
-
-                $setuju = $approval->permit_approval_status == 1 ? $personel->remaining_leave : ($personel->remaining_leave - count($permit->PermitDate));
-                $tolak = $approval->permit_approval_status == 1 ? ($personel->remaining_leave + count($permit->PermitDate)) : $personel->remaining_leave;
-                $personel->remaining_leave = $type == 'setuju' ? $setuju : $tolak;
-            }
-            $personel->save();
 
             $approval->id_permit_application =  $id;
             $approval->id_m_user_company = $auth->id_m_user_company;
             $approval->permit_approval_status = $type == 'tolak' ? 2 : 1;
             $approval->permit_approval_reason = $request['catatan'];
             $approval->save();
+
+            if ($permit->permit_type == 3) {
+                $checkCuti = PermitDate::whereHas('Permit', function ($query) use ($personel) {
+                    $query->where([
+                        'id_m_personel' => $personel->id_m_personel,
+                        'permit_type' => 3,
+                        'permit_status' => 1
+                    ]);
+                })->count();
+                $personel->remaining_leave = $personel->total_leave - $checkCuti;
+            }
+            $personel->save();
+
+
+            if ($personel->remaining_leave < 0 && $permit->permit_type == 3 && $type != 'tolak') {
+                DB::rollback();
+                return $this->sendResponse(
+                    Fungsi::STATUS_ERROR,
+                    "Jatah Cuti $personel->m_personel_names Melebihi Batas"
+                );
+            }
             DB::commit();
 
             return $this->sendResponse(
@@ -209,6 +235,7 @@ class PermitController extends Controller
     {
         // return $id;
         $message = 'Berhasil menghapus Data Izin';
+        // return [$type, $id];
 
         $permit = Permit::where([
             'id_permit_application' => $id,

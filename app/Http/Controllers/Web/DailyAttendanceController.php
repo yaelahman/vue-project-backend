@@ -11,6 +11,7 @@ use App\Models\AbsensiPhoto;
 use App\Models\DeviceSettings;
 use App\Models\Permit;
 use App\Models\Personel;
+use App\Models\AttendanceSpot;
 use App\Models\WorkPersonel;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
@@ -51,7 +52,15 @@ class DailyAttendanceController extends Controller
             $absensi->where('t_absensi_Dates', 'ILIKE', $t_absensi_Dates);
         }
 
-        $absensi = $absensi->get();
+        if (isset($request->search) && $request->search != null) {
+            $absensi->where(function ($query) use ($request) {
+                $query->whereHas('Personel', function ($query) use ($request) {
+                    $query->where('m_personel_names', 'ILIKE', "%$request->search%");
+                });
+            });
+        }
+
+        $absensi = $absensi->paginate($request->show ?? 10);
 
         foreach ($absensi as $val) {
             $startDate = \Carbon\Carbon::parse($val->t_absensi_startClock);
@@ -70,7 +79,7 @@ class DailyAttendanceController extends Controller
         return $this->sendResponse(
             Fungsi::STATUS_SUCCESS,
             Fungsi::MES_SUCCESS,
-            $absensi->load(['Personel', 'PhotoAbsensi'])
+            $absensi
         );
     }
 
@@ -89,6 +98,23 @@ class DailyAttendanceController extends Controller
                 $absensi = new Absensi();
                 $absensi->created_at = Carbon::now();
                 $absensi->id_m_user_company = $auth->id_m_user_company;
+
+                $check = Absensi::whereDate('t_absensi_startClock', $request['absensi']['startDate'])
+                    ->where('id_m_personel', $request['absensi']['personel'])
+                    ->whereIn('t_absensi_status', [1, 2])
+                    ->first();
+
+                if ($check) {
+
+                    // return $request['absensi']['endClock'] != null ? $request['absensi']['endDate'] . ' ' . $request['absensi']['endClock'] : null;
+
+                    $message = 'Tanggal ' . $request['absensi']['startDate'] . ' telah melakukan absen';
+                    return $this->sendResponse(
+                        $check,
+                        Fungsi::STATUS_ERROR,
+                        $message,
+                    );
+                }
             }
 
             $absensi->id_m_personel = $request['absensi']['personel'];
@@ -99,6 +125,12 @@ class DailyAttendanceController extends Controller
             $absensi->t_absensi_status = isset($request['absensi']['status']) && $request['absensi']['status'] ? 2 : 1;
             $absensi->t_absensi_catatan_telat_masuk = $request['absensi']['catatan_masuk'] != null ? $request['absensi']['catatan_masuk'] : null;
             $absensi->t_absensi_catatan = $request['absensi']['catatan_pulang'] != null ? $request['absensi']['catatan_pulang'] : null;
+            if (isset($request['absensi']['attendance_spot']) && $request['absensi']['attendance_spot'] != null) {
+                $spot = AttendanceSpot::find($request['absensi']['attendance_spot']);
+                if ($spot) {
+                    $absensi->t_absensi_latLong = $spot->m_attendance_spots_latitude . "," . $spot->m_attendance_spots_longitude;
+                }
+            }
             $absensi->updated_at = Carbon::now();
             $absensi->save();
 
@@ -110,7 +142,7 @@ class DailyAttendanceController extends Controller
             );
         } catch (\Exception $th) {
             Log::info($th);
-            throw $th;
+            // throw $th;
             DB::rollback();
             return $this->sendResponse(
                 Fungsi::STATUS_ERROR,
@@ -167,12 +199,17 @@ class DailyAttendanceController extends Controller
             $auth = Auth::user();
             $personels = Personel::has(
                 'WorkPersonel'
-            )->where('m_personel_status', 1)->where('id_m_user_company', $auth->id_m_user_company);
+            )->with('Departemen')->where('m_personel_status', 1)->where('id_m_user_company', $auth->id_m_user_company);
 
             if (isset($request->departemen) && $request->departemen != null) {
                 $personels->where('id_m_departemen', $request->departemen);
             }
-            $personels = $personels->get();
+            if (isset($request->search) && $request->search != null) {
+                $personels->where(function ($query) use ($request) {
+                    $query->where('m_personel_names', 'ILIKE', "%$request->search%");
+                });
+            }
+            $personels = $personels->paginate($request->show ?? 10);
             foreach ($personels as $personel) {
                 $start = new Carbon($personel->WorkPersonel->m_work_personel_time);
                 if (strtotime($request->startDate) > strtotime($personel->WorkPersonel->m_work_personel_time)) {
@@ -248,7 +285,7 @@ class DailyAttendanceController extends Controller
             return $this->sendResponse(
                 Fungsi::STATUS_SUCCESS,
                 Fungsi::MES_SUCCESS,
-                $personels->load('Departemen')
+                $personels
             );
         }
     }

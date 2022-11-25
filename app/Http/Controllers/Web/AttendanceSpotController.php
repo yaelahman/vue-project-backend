@@ -14,12 +14,25 @@ use Illuminate\Support\Facades\Log;
 
 class AttendanceSpotController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $auth = Auth::user();
         $attendance_spots = AttendanceSpot::with('getUserCompany')->orderBy('id_m_attendance_spots', 'desc')
-            ->where('id_m_user_company', $auth->id_m_user_company)
-            ->get();
+            ->where('id_m_user_company', $auth->id_m_user_company);
+
+        if (isset($request->search) && $request->search != null) {
+            $attendance_spots->where(function ($query) use ($request) {
+                $query->where('m_attendance_spots_name', 'ILIKE', "%$request->search%");
+                $query->orWhere('m_attendance_spots_address', 'ILIKE', "%$request->search%");
+            });
+        }
+
+        if ($request->pagination) {
+
+            $attendance_spots = $attendance_spots->paginate($request->show ?? 10);
+        } else {
+            $attendance_spots = $attendance_spots->get();
+        }
 
         foreach ($attendance_spots as $attendance_spot) {
             $attendance_spot->count_personel = AttendancePersonel::where('id_m_attendance_spots', $attendance_spot->id_m_attendance_spots)

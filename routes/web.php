@@ -101,6 +101,7 @@ $router->group([
 
     // Data Personel
     $router->get('/index-data-personel', 'Web\DataPersonelController@index');
+    $router->get('/index-datatable-personel', 'Web\DataPersonelController@datatable_get');
     $router->get('/show-data-personel/{id}', 'Web\DataPersonelController@show');
     $router->post('/create-edit-data-personel', 'Web\DataPersonelController@create');
     $router->get('/generate-token-data-personel/{id}', 'Web\DataPersonelController@generateToken');
