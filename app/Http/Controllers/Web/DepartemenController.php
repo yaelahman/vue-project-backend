@@ -11,13 +11,18 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
 class DepartemenController extends Controller
 {
     public function index(Request $request)
     {
-        $departemen = Departemen::withCount('Personels');
+        $auth = Auth::user();
+        $departemen = Departemen::where('id_m_user_company', $auth->id_m_user_company)->withCount(['Personels' => function ($query) use ($auth) {
+            $query->where('id_m_user_company', $auth->id_m_user_company);
+            $query->where('m_personel_status', 1);
+        }]);
 
         return $this->sendResponse(
             Fungsi::STATUS_SUCCESS,
@@ -40,6 +45,7 @@ class DepartemenController extends Controller
                 $departemen = new Departemen();
                 $departemen->created_at = Carbon::now();
             }
+            $departemen->id_m_user_company = Auth::user()->id_m_user_company;
             $departemen->m_departemen_name = $request['departemen']['m_departemen_name'];
             $departemen->updated_at = Carbon::now();
             $departemen->save();
@@ -63,7 +69,8 @@ class DepartemenController extends Controller
 
     public function detail($id)
     {
-        $departemen = Departemen::findOrFail($id);
+        $auth = Auth::user();
+        $departemen = Departemen::where('id_m_user_company', $auth->id_m_user_company)->firstOrFail($id);
 
         return $this->sendResponse(
             Fungsi::STATUS_SUCCESS,

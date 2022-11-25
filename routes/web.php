@@ -21,6 +21,11 @@ $router->get('/', function () use ($router) {
     return $router->app->version();
 });
 
+
+$router->get('/privacy-policy', function () use ($router) {
+    return view('privacy');
+});
+
 $router->group(['prefix' => 'isi'], function () use ($router) {
     $router->get('get', 'IsiController@index');
     $router->post('store', 'IsiController@store');

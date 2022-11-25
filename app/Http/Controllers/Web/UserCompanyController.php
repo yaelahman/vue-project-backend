@@ -18,9 +18,11 @@ use Illuminate\Support\Facades\Log;
 use App\Mail\MailUser;
 use App\Models\ChangeEmail;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Auth;
 
 class UserCompanyController extends Controller
 {
+
     public function index()
     {
         $user_companies = UserCompany::with('companyIndustri')->orderBy('id_m_user_company', 'DESC')->get();
@@ -75,7 +77,7 @@ class UserCompanyController extends Controller
                 );
             }
 
-            if ($user_company->m_user_company_email != $request['user_company']['m_user_company_email']) {
+            if ($user_company->m_user_company_email != $request['user_company']['m_user_company_email'] && Auth::user()->id_m_user_company != null) {
 
                 $change = ChangeEmail::where('email', $user_company->m_user_company_email)->first();
                 if (!isset($request['user_company']['token'])) {
